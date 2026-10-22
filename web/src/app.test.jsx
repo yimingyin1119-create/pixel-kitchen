@@ -106,3 +106,10 @@ test('optimistic change reverts on error', async () => {
   expect(await screen.findByText('已经有人叫这个名字了')).toBeTruthy();
   expect(screen.getByTestId('name').textContent).toBe('小明');
 });
+
+test('brand name everywhere', () => {
+  render(<App />);
+  expect(screen.getAllByText('搭伙小灶').length).toBeGreaterThan(0);
+  expect(screen.getByText('一起开小灶')).toBeTruthy();
+  expect(document.body.textContent).not.toContain('乡村小厨');
+});

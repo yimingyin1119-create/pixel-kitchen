@@ -1,4 +1,6 @@
-export function Header({ title = '乡村小厨', subtitle }) {
+import { BRAND } from '../copy.js';
+
+export function Header({ title = BRAND, subtitle }) {
   return (
     <header>
       <div class="awning" />

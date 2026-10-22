@@ -6,7 +6,6 @@ import { TabBar, TAB_IDS } from './ui/TabBar.jsx';
 import { Offline } from './ui/Offline.jsx';
 import { Login } from './pages/Login.jsx';
 import { Me } from './pages/Me.jsx';
-import { Placeholder } from './pages/Placeholder.jsx';
 import { Today } from './pages/Today.jsx';
 import { Recipes } from './pages/Recipes.jsx';
 import { Shopping } from './pages/Shopping.jsx';

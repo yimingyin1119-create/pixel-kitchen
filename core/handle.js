@@ -3,13 +3,13 @@ import { authenticate } from './session.js';
 import { view } from './view.js';
 
 const STATUS = {
-  BAD_INPUT: 400, UNAUTHORIZED: 401, FORBIDDEN: 403, NOT_FOUND: 404, NO_USERS: 404,
+  BAD_INPUT: 400, UNAUTHORIZED: 401, FORBIDDEN: 403, NOT_FOUND: 404,
   CONFLICT: 409, NEEDS_IMAGES: 422, NEEDS_FALLBACK: 422, LOCKED: 423, UPSTREAM: 502,
 };
 
 const ACTIONS = {};
 
-// role: 'public' (no login), 'any' (logged in), 'chef'
+// role: 'public' (no login) or 'any' (any logged-in member; there are no other roles)
 export function register(name, role, run) {
   ACTIONS[name] = { role, run };
 }
@@ -61,7 +61,6 @@ export function handle(action, state, payload, ctx) {
     if (entry.role !== 'public') {
       me = authenticate(state, ctx.token, ctx.now);
       if (!me) throw fail('UNAUTHORIZED', '请先登录');
-      if (entry.role === 'chef' && me.role !== 'chef') throw fail('FORBIDDEN', '只有厨师可以这样做');
     }
     const out = entry.run(state, payload ?? {}, ctx, me) ?? {};
     const writes = out.writes ?? {};

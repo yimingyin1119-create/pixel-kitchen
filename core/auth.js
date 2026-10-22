@@ -3,10 +3,12 @@ import { sha256Hex } from './sha256.js';
 import { newId } from './ids.js';
 import { addDays, addMinutes } from './time.js';
 import { view } from './view.js';
+import { sameName } from './names.js';
 
 const SESSION_DAYS = 30;
 const MAX_FAILS = 5;
 const LOCK_MINUTES = 15;
+export const MAX_MEMBERS = 6;
 
 export function hashPin(pin, salt) {
   return sha256Hex(`${salt}:${pin}`);
@@ -48,19 +50,19 @@ function signedIn(state, w, ctx, user) {
   return { writes: w.writes, data: { token: session.uid, view: view(after, user, ctx) } };
 }
 
-register('auth.setup', 'public', (state, p, ctx) => {
-  if (state.users.length > 0) throw fail('FORBIDDEN', '已经有厨师账号了，请直接登录');
+register('auth.register', 'public', (state, p, ctx) => {
   const name = checkName(p.name);
   checkPin(p.pin);
+  if (state.users.some((u) => sameName(u.name, name))) throw fail('CONFLICT', '已经有人叫这个名字了');
+  if (state.users.length >= MAX_MEMBERS) throw fail('FORBIDDEN', `人满了，最多 ${MAX_MEMBERS} 个人`);
   const w = writer();
-  const chef = w.put('pk_users', newUser(ctx, name, p.pin, 'chef'));
-  return signedIn(state, w, ctx, chef);
+  const member = w.put('pk_users', newUser(ctx, name, p.pin, 'member'));
+  return signedIn(state, w, ctx, member);
 });
 
 register('auth.login', 'public', (state, p, ctx) => {
-  if (state.users.length === 0) throw fail('NO_USERS', '还没有任何账号，先建一个厨师账号吧');
   const name = String(p.name ?? '').trim();
-  const user = state.users.find((u) => u.name === name);
+  const user = state.users.find((u) => sameName(u.name, name));
   if (!user) throw fail('UNAUTHORIZED', '名字或口令不对');
   if (user.lockedUntilIso && user.lockedUntilIso > ctx.now) throw fail('LOCKED', '错太多次了，15 分钟后再试');
   const w = writer();
@@ -87,16 +89,7 @@ register('auth.logout', 'any', (state, p, ctx) => {
 
 register('state.get', 'any', () => ({}));
 
-register('users.create', 'chef', (state, p, ctx) => {
-  const name = checkName(p.name);
-  checkPin(p.pin);
-  if (state.users.some((u) => u.name === name)) throw fail('CONFLICT', '已经有人叫这个名字了');
-  const w = writer();
-  w.put('pk_users', newUser(ctx, name, p.pin, 'diner'));
-  return { writes: w.writes };
-});
-
-register('users.resetPin', 'chef', (state, p, ctx) => {
+register('users.resetPin', 'any', (state, p, ctx) => {
   checkPin(p.pin);
   const user = state.users.find((u) => u.uid === p.uid);
   if (!user) throw fail('NOT_FOUND', '找不到这个人');

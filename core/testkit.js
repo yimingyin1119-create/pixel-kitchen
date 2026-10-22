@@ -20,13 +20,17 @@ export function call(state, action, payload = {}, token = '', ctxOver = {}) {
   return { ...r, state: applyWrites(state, r.writes) };
 }
 
-export function setupChef(pin = '1234', name = '大厨') {
-  const r = call(emptyState(), 'auth.setup', { name, pin });
+export function register(state = emptyState(), name = '小明', pin = '1234') {
+  const r = call(state, 'auth.register', { name, pin });
+  if (r.status !== 200) throw new Error(`register failed: ${JSON.stringify(r.body)}`);
   return { state: r.state, token: r.body.data.token, uid: r.body.data.view.me.uid };
 }
 
+// Older tests call the first member "chef" and the second "diner"; with no roles they are just two members.
+export function setupChef(pin = '1234', name = '大厨') {
+  return register(emptyState(), name, pin);
+}
+
 export function addDiner(base, name = '小明', pin = '5678') {
-  let r = call(base.state, 'users.create', { name, pin }, base.token);
-  r = call(r.state, 'auth.login', { name, pin });
-  return { state: r.state, token: r.body.data.token, uid: r.body.data.view.me.uid };
+  return register(base.state, name, pin);
 }

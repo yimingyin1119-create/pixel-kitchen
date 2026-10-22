@@ -8,17 +8,14 @@ export function extendView(fn) {
 
 export function view(state, me, ctx) {
   if (!me) return null;
-  const chef = me.role === 'chef';
   const out = {
     me: { uid: me.uid, name: me.name, role: me.role, avatar: me.avatar, hasPush: Boolean(me.pushToken) },
     users: state.users.map((u) => ({ uid: u.uid, name: u.name, role: u.role, avatar: u.avatar })),
     recipes: state.recipes.filter((r) => !r.archived),
-    orders: chef ? state.orders : state.orders.filter((o) => o.userUid === me.uid),
+    orders: state.orders,
+    inventory: state.inventory.filter((i) => !i.hidden),
+    shopping: state.shopping.filter((s) => !s.removed),
   };
-  if (chef) {
-    out.inventory = state.inventory;
-    out.shopping = state.shopping.filter((s) => !s.removed);
-  }
   for (const fn of extras) Object.assign(out, fn(state, me, ctx));
   return out;
 }

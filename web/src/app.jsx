@@ -9,6 +9,8 @@ import { Me } from './pages/Me.jsx';
 import { Placeholder } from './pages/Placeholder.jsx';
 import { Today } from './pages/Today.jsx';
 import { Recipes } from './pages/Recipes.jsx';
+import { Shopping } from './pages/Shopping.jsx';
+import { Stock } from './pages/Stock.jsx';
 
 const TOKEN_KEY = 'pk.token';
 const cacheKey = (token) => `pk.view.${token.slice(0, 8)}`;
@@ -122,8 +124,8 @@ export function AppProvider({ children }) {
 const PAGES = {
   today: () => <Today />,
   recipes: () => <Recipes />,
-  shopping: () => <Placeholder title="采购" sprite="cart" />,
-  stock: () => <Placeholder title="食材" sprite="fridge" />,
+  shopping: () => <Shopping />,
+  stock: () => <Stock />,
   me: () => <Me />,
 };
 

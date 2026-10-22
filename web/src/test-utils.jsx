@@ -24,11 +24,11 @@ export function makeView(role = 'diner', over = {}) {
   };
 }
 
-export function renderWithApp(ui, { view = makeView(), act } = {}) {
+export function renderWithApp(ui, { view = makeView(), act, highlight = null } = {}) {
   const actFn = act ?? vi.fn(async () => view);
   const value = {
     view, me: view.me, token: 't', act: actFn, refresh: vi.fn(), signOut: vi.fn(), syncing: false, offline: false,
-    highlight: null, setHighlight: vi.fn(),
+    highlight, setHighlight: vi.fn(),
   };
   const utils = render(<AppContext.Provider value={value}>{ui}</AppContext.Provider>);
   return { ...utils, act: actFn, refresh: value.refresh };

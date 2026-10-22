@@ -129,3 +129,9 @@ textarea.px-input { min-height: 64px; resize: vertical; }
 @keyframes pk-flash { 0%, 50%, 100% { background: var(--paper); } 25%, 75% { background: var(--gold); } }
 .flash { animation: pk-flash 1.2s steps(4) 1; }
 .link-btn { background: none; border: 0; color: var(--wood-dark); text-decoration: underline; cursor: pointer; padding: 8px; }
+
+.big-btn { display: block; width: calc(100% - 6px); margin: 10px 3px; padding: 10px; font-size: 16px; }
+.dish-picker { max-height: 34vh; overflow: auto; margin: 6px 0; }
+.pick-row { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px dashed var(--miss-bg); cursor: pointer; }
+.pick-row input { width: 18px; height: 18px; accent-color: var(--tomato); }
+a.tag { text-decoration: none; }

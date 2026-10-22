@@ -7,6 +7,7 @@ import { Offline } from './ui/Offline.jsx';
 import { Login } from './pages/Login.jsx';
 import { Me } from './pages/Me.jsx';
 import { Placeholder } from './pages/Placeholder.jsx';
+import { Today } from './pages/Today.jsx';
 
 const TOKEN_KEY = 'pk.token';
 const cacheKey = (token) => `pk.view.${token.slice(0, 8)}`;
@@ -118,7 +119,7 @@ export function AppProvider({ children }) {
 }
 
 const PAGES = {
-  today: () => <Placeholder title="今天" sprite="bowl" />,
+  today: () => <Today />,
   recipes: () => <Placeholder title="菜谱" sprite="pot" />,
   shopping: () => <Placeholder title="采购" sprite="cart" />,
   stock: () => <Placeholder title="食材" sprite="fridge" />,

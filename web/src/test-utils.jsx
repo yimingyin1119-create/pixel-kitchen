@@ -15,17 +15,21 @@ export function makeView(role = 'diner', over = {}) {
       { uid: 'r2', name: '葱油拌面', zone: 'signature', baseServings: 1, ingredients: [], steps: [], archived: false },
       { uid: 'r3', name: '佛跳墙', zone: 'wish', baseServings: 4, ingredients: [], steps: [], archived: false },
     ],
-    orders: [],
+    requests: [],
     availability: { r1: { makeable: true, missing: [] }, r2: { makeable: false, missing: ['小葱'] } },
-    dishCounts: { r1: 3 },
-    ...(role === 'chef' ? { inventory: [], shopping: [] } : {}),
+    doneCounts: { r1: 3 },
+    inventory: [],
+    shopping: [],
     ...over,
   };
 }
 
 export function renderWithApp(ui, { view = makeView(), act } = {}) {
   const actFn = act ?? vi.fn(async () => view);
-  const value = { view, me: view.me, token: 't', act: actFn, refresh: vi.fn(), signOut: vi.fn() };
+  const value = {
+    view, me: view.me, token: 't', act: actFn, refresh: vi.fn(), signOut: vi.fn(), syncing: false, offline: false,
+    highlight: null, setHighlight: vi.fn(),
+  };
   const utils = render(<AppContext.Provider value={value}>{ui}</AppContext.Provider>);
-  return { ...utils, act: actFn };
+  return { ...utils, act: actFn, refresh: value.refresh };
 }

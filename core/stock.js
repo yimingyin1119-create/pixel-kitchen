@@ -1,0 +1,71 @@
+import { register, fail, writer } from './handle.js';
+import { newId } from './ids.js';
+import { convert, normalizeUnit, round1 } from './units.js';
+import { matchIngredient } from './recipes.js';
+
+const OPEN = ['pending', 'accepted'];
+
+// Stock left once every other open order has taken what it needs.
+export function available(item, state, exceptOrderUid) {
+  let reserved = 0;
+  for (const o of state.orders) {
+    if (o.uid === exceptOrderUid || !OPEN.includes(o.status)) continue;
+    for (const n of o.needs ?? []) if (n.inventoryUid === item.uid && typeof n.qty === 'number') reserved += n.qty;
+  }
+  return round1(item.qty - reserved);
+}
+
+export function lowStockCheck(item) {
+  return item.kind === 'seasoning' ? item.status !== 'ok' : item.qty <= item.lowThreshold;
+}
+
+// Adds bought goods to stock; creates the item when nothing matches. Returns the item and the amount
+// added in the item's own unit.
+export function stockIn(state, ctx, { inventoryUid, name, qty, unit, expiresOn }) {
+  const item = inventoryUid
+    ? state.inventory.find((i) => i.uid === inventoryUid)
+    : matchIngredient(name, state.inventory);
+  const extra = { stockedIso: ctx.now, ...(expiresOn ? { expiresOn } : {}) };
+  if (!item) {
+    const base = normalizeUnit(unit);
+    const added = round1(qty * base.factor);
+    const created = {
+      uid: newId(ctx, 'i'), name: String(name).trim(), aliases: [], kind: 'main', qty: added, unit: base.unit,
+      lowThreshold: 0, status: 'ok', expiresOn: '', ...extra,
+    };
+    return { item: created, added };
+  }
+  if (item.kind === 'seasoning') {
+    const added = convert(qty, unit, item.unit) ?? 0;
+    return { item: { ...item, ...extra, status: 'ok', qty: round1(item.qty + added) }, added };
+  }
+  const added = convert(qty, unit || item.unit, item.unit);
+  if (added === null) throw fail('BAD_INPUT', `单位对不上：${item.name} 是按 ${item.unit} 记的`);
+  return { item: { ...item, ...extra, qty: round1(item.qty + added) }, added };
+}
+
+const KINDS = ['main', 'seasoning'];
+const STATUSES = ['ok', 'low', 'out'];
+
+register('inventory.save', 'chef', (state, p, ctx) => {
+  const input = p.item ?? {};
+  const existing = input.uid ? state.inventory.find((i) => i.uid === input.uid) : null;
+  if (input.uid && !existing) throw fail('NOT_FOUND', '找不到这样食材');
+  const name = String(input.name ?? existing?.name ?? '').trim();
+  if (!name) throw fail('BAD_INPUT', '食材名不能为空');
+  const qty = Number(input.qty ?? existing?.qty ?? 0);
+  const lowThreshold = Number(input.lowThreshold ?? existing?.lowThreshold ?? 0);
+  if (!(qty >= 0) || !(lowThreshold >= 0)) throw fail('BAD_INPUT', '数量不能是负数');
+  const kind = KINDS.includes(input.kind) ? input.kind : existing?.kind ?? 'main';
+  const status = STATUSES.includes(input.status) ? input.status : existing?.status ?? 'ok';
+  const expiresOn = String(input.expiresOn ?? existing?.expiresOn ?? '');
+  if (expiresOn && !/^\d{4}-\d{2}-\d{2}$/.test(expiresOn)) throw fail('BAD_INPUT', '保质期格式不对');
+  const w = writer();
+  w.put('pk_inventory', {
+    ...(existing ?? { uid: newId(ctx, 'i'), stockedIso: ctx.now }),
+    name, kind, qty: round1(qty), lowThreshold, status, expiresOn,
+    unit: String(input.unit ?? existing?.unit ?? '').trim(),
+    aliases: Array.isArray(input.aliases) ? input.aliases.map(String) : existing?.aliases ?? [],
+  });
+  return { writes: w.writes };
+});

@@ -36,17 +36,21 @@ export function applyWrites(state, writes = {}) {
 }
 
 // Writes accumulate per table; a later write of the same uid replaces the earlier one.
-export function writer() {
+// When given a state, w.state always reflects the writes so far, for multi-step actions.
+export function writer(state) {
   const writes = {};
-  return {
+  const w = {
     writes,
+    state,
     put(table, row) {
       const rows = (writes[table] ??= []);
       const i = rows.findIndex((r) => r.uid === row.uid);
       if (i >= 0) rows[i] = row; else rows.push(row);
+      if (w.state) w.state = applyWrites(w.state, { [table]: [row] });
       return row;
     },
   };
+  return w;
 }
 
 export function handle(action, state, payload, ctx) {

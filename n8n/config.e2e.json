@@ -1,0 +1,7 @@
+{
+  "allowedOrigins": "*",
+  "anthropicUrl": "http://e2e-runner:5690/anthropic/v1/messages",
+  "pushplusUrl": "http://e2e-runner:5690/pushplus/send",
+  "timezone": "Asia/Singapore",
+  "anthropicCredentialId": "pkAnthropicCred1"
+}

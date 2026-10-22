@@ -1,7 +1,7 @@
 // Stand-in for PushPlus (and, from M2, Anthropic) so end-to-end tests never call real services.
 import http from 'node:http';
 
-export function startMockUpstream(port = 5690) {
+export function startMockUpstream(port = 5690, host = process.env.MOCK_HOST ?? '127.0.0.1') {
   const pushes = [];
   const server = http.createServer((req, res) => {
     let body = '';
@@ -16,7 +16,7 @@ export function startMockUpstream(port = 5690) {
       send(404, { error: 'not mocked' });
     });
   });
-  return new Promise((resolve) => server.listen(port, '127.0.0.1', () => resolve({
+  return new Promise((resolve) => server.listen(port, host, () => resolve({
     pushes,
     close: () => new Promise((r) => server.close(r)),
   })));

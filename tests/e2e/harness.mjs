@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const PORT = 5679;
-export const BASE = `http://localhost:${PORT}`;
+// PK_E2E_BASE points at an n8n that is already running with the workflows loaded (the server e2e run).
+const EXTERNAL = process.env.PK_E2E_BASE;
+export const BASE = EXTERNAL ?? `http://localhost:${PORT}`;
 
 function env() {
   const out = execFileSync('bash', ['-c', `. "${REPO}/scripts/n8n-env.sh" && env -0`], { encoding: 'utf8' });
@@ -25,12 +27,15 @@ async function waitHealthy(deadline) {
 }
 
 export async function startN8n() {
-  const e = env();
-  rmSync(e.N8N_USER_FOLDER, { recursive: true, force: true });
-  execFileSync('bash', [`${REPO}/scripts/deploy-local.sh`, 'test'], { env: e, stdio: 'ignore' });
-  const log = openSync(path.join(e.N8N_USER_FOLDER, 'e2e.log'), 'w');
-  const proc = spawn(e.N8N_BIN, ['start'], { env: e, stdio: ['ignore', log, log] });
-  await waitHealthy(Date.now() + 90_000);
+  let proc = null;
+  if (!EXTERNAL) {
+    const e = env();
+    rmSync(e.N8N_USER_FOLDER, { recursive: true, force: true });
+    execFileSync('bash', [`${REPO}/scripts/deploy-local.sh`, 'test'], { env: e, stdio: 'ignore' });
+    const log = openSync(path.join(e.N8N_USER_FOLDER, 'e2e.log'), 'w');
+    proc = spawn(e.N8N_BIN, ['start'], { env: e, stdio: ['ignore', log, log] });
+  }
+  await waitHealthy(Date.now() + 120_000);
   // Webhooks register shortly after /healthz turns green; the setup webhook creates the tables.
   let setup;
   for (let i = 0; i < 40; i++) {
@@ -46,6 +51,6 @@ export async function startN8n() {
       });
       return { status: r.status, body: await r.json() };
     },
-    stop: () => new Promise((resolve) => { proc.once('exit', resolve); proc.kill('SIGTERM'); }),
+    stop: () => (proc ? new Promise((resolve) => { proc.once('exit', resolve); proc.kill('SIGTERM'); }) : Promise.resolve()),
   };
 }

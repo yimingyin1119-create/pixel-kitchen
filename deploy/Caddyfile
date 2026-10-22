@@ -1,0 +1,9 @@
+# Only the app's webhooks are public. The n8n editor and the internal /webhook/pk-setup stay private.
+{$PK_DOMAIN} {
+	handle /webhook/pk/* {
+		reverse_proxy n8n:5678
+	}
+	handle {
+		respond 404
+	}
+}

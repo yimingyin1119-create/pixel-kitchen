@@ -38,7 +38,7 @@ function findShop(state, uid) {
   return s;
 }
 
-register('shopping.add', 'chef', (state, p, ctx) => {
+register('shopping.add', 'any', (state, p, ctx) => {
   const name = String(p.name ?? '').trim();
   const qty = Number(p.qty);
   if (!name || !(qty > 0)) throw fail('BAD_INPUT', '要写清楚买什么、买多少');
@@ -51,7 +51,7 @@ register('shopping.add', 'chef', (state, p, ctx) => {
   return { writes: w.writes };
 });
 
-register('shopping.check', 'chef', (state, p, ctx) => {
+register('shopping.check', 'any', (state, p, ctx) => {
   const shop = findShop(state, p.uid);
   if (shop.done) throw fail('CONFLICT', '这一项已经买过了');
   const bought = Number(p.boughtQty);
@@ -66,12 +66,22 @@ register('shopping.check', 'chef', (state, p, ctx) => {
   return { writes: w.writes };
 });
 
-register('shopping.uncheck', 'chef', (state, p) => {
+register('shopping.uncheck', 'any', (state, p) => {
   const shop = findShop(state, p.uid);
   if (!shop.done) throw fail('CONFLICT', '这一项还没勾上');
   const item = state.inventory.find((i) => i.uid === shop.inventoryUid);
   const w = writer();
   if (item) w.put('pk_inventory', { ...item, qty: round1(Math.max(0, item.qty - shop.boughtQty)) });
   w.put('pk_shopping', { ...shop, done: false, boughtQty: 0, doneIso: '' });
+  return { writes: w.writes };
+});
+
+register('shopping.remove', 'any', (state, p) => {
+  const shop = findShop(state, p.uid);
+  if (shop.reasons.some((r) => r.type !== 'manual')) {
+    throw fail('BAD_INPUT', '这一项是为某道菜买的，取消那个要求就会自动去掉');
+  }
+  const w = writer();
+  w.put('pk_shopping', { ...shop, removed: true });
   return { writes: w.writes };
 });

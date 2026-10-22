@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { available, lowStockCheck } from './stock.js';
-import { call, setupChef } from './testkit.js';
+import { call, setupChef, addDiner } from './testkit.js';
 
 function chefWithStock(items) {
   const chef = setupChef();
@@ -101,9 +101,34 @@ test('lowStockCheck by kind', () => {
   assert.equal(lowStockCheck({ kind: 'seasoning', status: 'low' }), true);
 });
 
-test('diner cannot touch shopping', () => {
+test('any member can work the shopping list', () => {
   const c = setupChef();
-  let r = call(c.state, 'users.create', { name: '小明', pin: '5678' }, c.token);
-  const login = call(r.state, 'auth.login', { name: '小明', pin: '5678' });
-  assert.equal(call(login.state, 'shopping.add', { name: '葱', qty: 1, unit: '把' }, login.body.data.token).status, 403);
+  const d = addDiner(c);
+  assert.equal(call(d.state, 'shopping.add', { name: '葱', qty: 1, unit: '把' }, d.token).status, 200);
+});
+
+test('duplicate stock names ignore spaces and case', () => {
+  const c = chefWithStock([pork]);
+  const r = call(c.state, 'inventory.save', { item: { ...pork, name: ' 五花肉 ' } }, c.token);
+  assert.equal(r.status, 409);
+  assert.match(r.body.error.message, /已经有「五花肉」了/);
+});
+
+test('hidden stock is not matched', () => {
+  const c = chefWithStock([pork]);
+  let r = call(c.state, 'inventory.remove', { uid: c.state.inventory[0].uid }, c.token);
+  assert.deepEqual(r.body.data.inventory, []);
+  r = call(r.state, 'shopping.add', { name: '五花肉', qty: 100, unit: 'g' }, c.token);
+  assert.equal(r.state.shopping[0].inventoryUid, '');
+  assert.equal(call(r.state, 'inventory.save', { item: pork }, c.token).status, 200);
+});
+
+test('only manual shopping items can be removed', () => {
+  const c = setupChef();
+  let r = call(c.state, 'shopping.add', { name: '小葱', qty: 1, unit: '把' }, c.token);
+  const manual = r.state.shopping[0].uid;
+  r = call(r.state, 'shopping.remove', { uid: manual }, c.token);
+  assert.equal(r.state.shopping[0].removed, true);
+  const forDish = { ...r.state, shopping: [{ uid: 's2', name: '肉', inventoryUid: '', qty: 1, unit: 'g', reasons: [{ type: 'order', orderUid: 'o1', qty: 1 }], done: false, boughtQty: 0, doneIso: '', removed: false }] };
+  assert.equal(call(forDish, 'shopping.remove', { uid: 's2' }, c.token).status, 400);
 });

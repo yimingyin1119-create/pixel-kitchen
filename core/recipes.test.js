@@ -31,19 +31,21 @@ test('normalizeDraft treats zero quantity as 适量', () => {
 
 const recipe = { name: '番茄炒蛋', baseServings: 2, ingredients: [{ name: '番茄', qty: 2, unit: '个', kind: 'main' }], steps: ['切', '炒'] };
 
-test('chef saves a signature dish', () => {
-  const chef = setupChef();
-  const r = call(chef.state, 'recipes.save', { recipe }, chef.token);
+test('any member saves a dish', () => {
+  const a = setupChef();
+  const b = addDiner(a);
+  const r = call(b.state, 'recipes.save', { recipe }, b.token);
   assert.equal(r.status, 200);
-  assert.equal(r.state.recipes[0].zone, 'signature');
+  assert.equal(r.state.recipes[0].name, '番茄炒蛋');
 });
 
-test('diner can only create wish', () => {
-  const diner = addDiner(setupChef());
-  const r = call(diner.state, 'recipes.save', { recipe: { ...recipe, zone: 'signature' } }, diner.token);
-  assert.equal(r.state.recipes[0].zone, 'wish');
-  const uid = r.state.recipes[0].uid;
-  assert.equal(call(r.state, 'recipes.save', { recipe: { ...recipe, uid, name: '改名' } }, diner.token).status, 403);
+test('any member can edit any dish', () => {
+  const a = setupChef();
+  const b = addDiner(a);
+  const saved = call(b.state, 'recipes.save', { recipe }, a.token);
+  const uid = saved.state.recipes[0].uid;
+  const r = call(saved.state, 'recipes.save', { recipe: { ...recipe, uid, baseServings: 3 } }, b.token);
+  assert.equal(r.state.recipes[0].baseServings, 3);
 });
 
 test('recipe needs a name', () => {
@@ -51,26 +53,33 @@ test('recipe needs a name', () => {
   assert.equal(call(chef.state, 'recipes.save', { recipe: { ...recipe, name: ' ' } }, chef.token).status, 400);
 });
 
-test('promote moves wish to signature', () => {
-  const chef = setupChef();
-  const saved = call(chef.state, 'recipes.save', { recipe: { ...recipe, zone: 'wish' } }, chef.token);
-  const uid = saved.state.recipes[0].uid;
-  assert.equal(call(saved.state, 'recipes.promote', { uid }, chef.token).state.recipes[0].zone, 'signature');
+test('duplicate names ignore spaces and case', () => {
+  const a = setupChef();
+  let s = call(a.state, 'recipes.save', { recipe }, a.token).state;
+  const dup = call(s, 'recipes.save', { recipe: { ...recipe, name: ' 番茄炒蛋 ' } }, a.token);
+  assert.equal(dup.status, 409);
+  assert.match(dup.body.error.message, /已经有「番茄炒蛋」了/);
+  s = call(s, 'recipes.save', { recipe: { ...recipe, name: 'Tofu' } }, a.token).state;
+  assert.equal(call(s, 'recipes.save', { recipe: { ...recipe, name: 'tofu' } }, a.token).status, 409);
 });
 
-test('vote toggles', () => {
-  const chef = setupChef();
-  const diner = addDiner(chef);
-  const saved = call(diner.state, 'recipes.save', { recipe }, diner.token);
-  const uid = saved.state.recipes[0].uid;
-  const once = call(saved.state, 'recipes.vote', { uid }, chef.token);
-  assert.deepEqual(once.state.recipes[0].wishVotes, [chef.uid]);
-  assert.deepEqual(call(once.state, 'recipes.vote', { uid }, chef.token).state.recipes[0].wishVotes, []);
+test('archived name can be reused', () => {
+  const a = setupChef();
+  let s = call(a.state, 'recipes.save', { recipe }, a.token).state;
+  s = call(s, 'recipes.archive', { uid: s.recipes[0].uid }, a.token).state;
+  assert.equal(call(s, 'recipes.save', { recipe }, a.token).status, 200);
 });
 
-test('archived recipes leave the view', () => {
-  const chef = setupChef();
-  const saved = call(chef.state, 'recipes.save', { recipe }, chef.token);
-  const r = call(saved.state, 'recipes.archive', { uid: saved.state.recipes[0].uid }, chef.token);
+test('any member can archive a recipe', () => {
+  const a = setupChef();
+  const b = addDiner(a);
+  const saved = call(b.state, 'recipes.save', { recipe }, a.token);
+  const r = call(saved.state, 'recipes.archive', { uid: saved.state.recipes[0].uid }, b.token);
   assert.deepEqual(r.body.data.recipes, []);
+});
+
+test('wish-list actions are gone', () => {
+  const a = setupChef();
+  assert.equal(call(a.state, 'recipes.promote', { uid: 'x' }, a.token).status, 400);
+  assert.equal(call(a.state, 'recipes.vote', { uid: 'x' }, a.token).status, 400);
 });

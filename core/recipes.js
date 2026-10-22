@@ -1,6 +1,7 @@
 import { register, fail, writer } from './handle.js';
 import { newId } from './ids.js';
 import { convert, normalizeUnit } from './units.js';
+import { sameName } from './names.js';
 
 const MODIFIERS = ['新鲜', '切片', '切段', '切丝', '去皮', '适量', '少许'];
 
@@ -10,7 +11,8 @@ function bare(name) {
   return n.trim();
 }
 
-export function matchIngredient(name, inventory) {
+export function matchIngredient(name, allInventory) {
+  const inventory = allInventory.filter((i) => !i.hidden);
   const n = String(name ?? '').trim();
   const b = bare(n);
   return (
@@ -61,40 +63,24 @@ function findRecipe(state, uid) {
 
 register('recipes.save', 'any', (state, p, ctx, me) => {
   const input = p.recipe ?? {};
-  const chef = me.role === 'chef';
   const existing = input.uid ? findRecipe(state, input.uid) : null;
-  if (existing && !chef) throw fail('FORBIDDEN', '只有厨师可以改已有的菜谱');
   const d = normalizeDraft(input, state.inventory);
   if (!d.name) throw fail('BAD_INPUT', '菜名不能为空');
-  const zone = !chef ? 'wish' : input.zone === 'wish' ? 'wish' : 'signature';
+  const clash = state.recipes.find((r) => !r.archived && r.uid !== input.uid && sameName(r.name, d.name));
+  if (clash) throw fail('CONFLICT', `已经有「${clash.name}」了`);
   const ingredients = d.ingredients.map(({ unmatched, ...rest }) => rest);
   const w = writer();
   w.put('pk_recipes', {
     ...(existing ?? { uid: newId(ctx, 'r'), wishVotes: [], createdBy: me.uid, createdIso: ctx.now, archived: false }),
     ...d,
     ingredients,
-    zone: existing ? (chef ? zone : existing.zone) : zone,
+    zone: 'signature',
   });
   return { writes: w.writes };
 });
 
-register('recipes.promote', 'chef', (state, p) => {
-  const w = writer();
-  w.put('pk_recipes', { ...findRecipe(state, p.uid), zone: 'signature' });
-  return { writes: w.writes };
-});
-
-register('recipes.archive', 'chef', (state, p) => {
+register('recipes.archive', 'any', (state, p) => {
   const w = writer();
   w.put('pk_recipes', { ...findRecipe(state, p.uid), archived: true });
-  return { writes: w.writes };
-});
-
-register('recipes.vote', 'any', (state, p, ctx, me) => {
-  const r = findRecipe(state, p.uid);
-  if (r.zone !== 'wish') throw fail('BAD_INPUT', '只能给想吃清单里的菜 +1');
-  const votes = r.wishVotes.includes(me.uid) ? r.wishVotes.filter((u) => u !== me.uid) : [...r.wishVotes, me.uid];
-  const w = writer();
-  w.put('pk_recipes', { ...r, wishVotes: votes });
   return { writes: w.writes };
 });

@@ -2,6 +2,7 @@ import { register, fail, writer } from './handle.js';
 import { newId } from './ids.js';
 import { convert, normalizeUnit, round1 } from './units.js';
 import { matchIngredient } from './recipes.js';
+import { sameName } from './names.js';
 
 const OPEN = ['pending', 'accepted'];
 
@@ -31,7 +32,7 @@ export function stockIn(state, ctx, { inventoryUid, name, qty, unit, expiresOn }
     const added = round1(qty * base.factor);
     const created = {
       uid: newId(ctx, 'i'), name: String(name).trim(), aliases: [], kind: 'main', qty: added, unit: base.unit,
-      lowThreshold: 0, status: 'ok', expiresOn: '', ...extra,
+      lowThreshold: 0, status: 'ok', expiresOn: '', hidden: false, ...extra,
     };
     return { item: created, added };
   }
@@ -47,12 +48,14 @@ export function stockIn(state, ctx, { inventoryUid, name, qty, unit, expiresOn }
 const KINDS = ['main', 'seasoning'];
 const STATUSES = ['ok', 'low', 'out'];
 
-register('inventory.save', 'chef', (state, p, ctx) => {
+register('inventory.save', 'any', (state, p, ctx) => {
   const input = p.item ?? {};
   const existing = input.uid ? state.inventory.find((i) => i.uid === input.uid) : null;
   if (input.uid && !existing) throw fail('NOT_FOUND', '找不到这样食材');
   const name = String(input.name ?? existing?.name ?? '').trim();
   if (!name) throw fail('BAD_INPUT', '食材名不能为空');
+  const clash = state.inventory.find((i) => !i.hidden && i.uid !== input.uid && sameName(i.name, name));
+  if (clash) throw fail('CONFLICT', `已经有「${clash.name}」了，要改数量就点它`);
   const qty = Number(input.qty ?? existing?.qty ?? 0);
   const lowThreshold = Number(input.lowThreshold ?? existing?.lowThreshold ?? 0);
   if (!(qty >= 0) || !(lowThreshold >= 0)) throw fail('BAD_INPUT', '数量不能是负数');
@@ -66,6 +69,15 @@ register('inventory.save', 'chef', (state, p, ctx) => {
     name, kind, qty: round1(qty), lowThreshold, status, expiresOn,
     unit: String(input.unit ?? existing?.unit ?? '').trim(),
     aliases: Array.isArray(input.aliases) ? input.aliases.map(String) : existing?.aliases ?? [],
+    hidden: false,
   });
+  return { writes: w.writes };
+});
+
+register('inventory.remove', 'any', (state, p) => {
+  const item = state.inventory.find((i) => i.uid === p.uid && !i.hidden);
+  if (!item) throw fail('NOT_FOUND', '找不到这样食材');
+  const w = writer();
+  w.put('pk_inventory', { ...item, hidden: true });
   return { writes: w.writes };
 });

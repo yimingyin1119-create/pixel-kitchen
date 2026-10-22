@@ -13,11 +13,11 @@ export const TABLES = {
   },
   pk_inventory: {
     uid: 'string', name: 'string', aliases: 'json', kind: 'string', qty: 'number', unit: 'string',
-    lowThreshold: 'number', status: 'string', expiresOn: 'string', stockedIso: 'string',
+    lowThreshold: 'number', status: 'string', expiresOn: 'string', stockedIso: 'string', hidden: 'boolean',
   },
   pk_orders: {
-    uid: 'string', userUid: 'string', items: 'json', servings: 'number', wantedDate: 'string',
-    meal: 'string', wantedTime: 'string', note: 'string', status: 'string', rejectReason: 'string',
+    uid: 'string', userUid: 'string', takerUid: 'string', items: 'json', servings: 'number', wantedDate: 'string',
+    meal: 'string', wantedTime: 'string', note: 'string', status: 'string',
     needs: 'json', shortages: 'json', createdIso: 'string', updatedIso: 'string',
   },
   pk_shopping: {

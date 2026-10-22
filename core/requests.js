@@ -64,35 +64,40 @@ export function computeShortages(needs, state, orderUid) {
   return out;
 }
 
-function chefTokens(state) {
-  return state.users.filter((u) => u.role === 'chef' && u.pushToken).map((u) => u.pushToken);
+function tokenOf(state, uid) {
+  return state.users.find((u) => u.uid === uid)?.pushToken || null;
 }
 
-function ownerToken(state, order) {
-  return state.users.find((u) => u.uid === order.userUid)?.pushToken || null;
+function nameOf(state, uid) {
+  return state.users.find((u) => u.uid === uid)?.name ?? '有人';
 }
 
-function dishNames(order) {
-  return order.items.map((i) => i.name);
+function dishNames(request) {
+  return request.items.map((i) => i.name);
 }
 
-function findOrder(state, uid) {
+// Event to one member, or nothing when it would go to the actor themself or they have no push token.
+function eventTo(state, toUid, actorUid, body) {
+  const to = toUid && toUid !== actorUid ? tokenOf(state, toUid) : null;
+  return to ? [{ ...body, to }] : [];
+}
+
+function findRequest(state, uid) {
   const o = state.orders.find((x) => x.uid === uid);
-  if (!o) throw fail('NOT_FOUND', '找不到这张单');
+  if (!o) throw fail('NOT_FOUND', '找不到这个要求');
   return o;
 }
 
-function requireStatus(order, allowed) {
-  if (!allowed.includes(order.status)) throw fail('CONFLICT', '这张单的状态已经变了，刷新看看');
+function requireStatus(request, allowed, message = '这个要求的状态已经变了，刷新看看') {
+  if (!allowed.includes(request.status)) throw fail('CONFLICT', message);
 }
 
-function validateOrder(state, p, ctx) {
+function validateRequest(state, p, ctx) {
   const uids = Array.isArray(p.items) ? p.items : [];
-  if (uids.length === 0) throw fail('BAD_INPUT', '至少点一道菜');
+  if (uids.length === 0) throw fail('BAD_INPUT', '至少选一道菜');
   const recipes = uids.map((uid) => {
     const r = state.recipes.find((x) => x.uid === uid && !x.archived);
     if (!r) throw fail('BAD_INPUT', '有道菜找不到了');
-    if (r.zone !== 'signature') throw fail('BAD_INPUT', `「${r.name}」还在想吃清单里，厨师学会了才能点`);
     return r;
   });
   const servings = Number(p.servings);
@@ -107,90 +112,91 @@ function validateOrder(state, p, ctx) {
   return { recipes, servings, wantedDate, meal: p.meal, wantedTime, note };
 }
 
-register('orders.place', 'any', (state, p, ctx, me) => {
-  const v = validateOrder(state, p, ctx);
+register('requests.create', 'any', (state, p, ctx, me) => {
+  const v = validateRequest(state, p, ctx);
   const uid = newId(ctx, 'o');
+  const selfCook = p.selfCook === true;
   const needs = computeNeeds(v.recipes, v.servings, state.inventory);
   const shortages = computeShortages(needs, state, uid);
+  const dishes = v.recipes.map((r) => r.name);
   const w = writer(state);
   for (const s of shortages) {
     if (s.reason === 'unitMismatch') continue;
     w.put('pk_shopping', addShoppingReason(w.state, ctx, {
-      name: s.name, inventoryUid: s.inventoryUid, qty: s.qty ?? 1, unit: s.unit, reason: { type: 'order', orderUid: uid },
+      name: s.name, inventoryUid: s.inventoryUid, qty: s.qty ?? 1, unit: s.unit,
+      reason: { type: 'order', orderUid: uid, dishes, wantedDate: v.wantedDate, meal: v.meal },
     }));
   }
-  const order = w.put('pk_orders', {
-    uid, userUid: me.uid, items: v.recipes.map((r) => ({ recipeUid: r.uid, name: r.name })),
+  const request = w.put('pk_orders', {
+    uid, userUid: me.uid, takerUid: selfCook ? me.uid : '', items: v.recipes.map((r) => ({ recipeUid: r.uid, name: r.name })),
     servings: v.servings, wantedDate: v.wantedDate, meal: v.meal, wantedTime: v.wantedTime, note: v.note,
-    status: 'pending', rejectReason: '', needs, shortages, createdIso: ctx.now, updatedIso: ctx.now,
+    status: selfCook ? 'taken' : 'open', needs, shortages, createdIso: ctx.now, updatedIso: ctx.now,
   });
-  const events = chefTokens(state).map((to) => ({
-    type: 'order.placed', to, who: me.name, dishes: dishNames(order), servings: order.servings,
-    wantedDate: order.wantedDate, meal: order.meal, wantedTime: order.wantedTime, note: order.note,
-    shortages: shortages.map((s) => s.name),
-  }));
+  const events = state.users
+    .filter((u) => u.uid !== me.uid && u.pushToken)
+    .map((u) => ({
+      type: 'request.created', to: u.pushToken, who: me.name, dishes, servings: request.servings,
+      wantedDate: request.wantedDate, meal: request.meal, wantedTime: request.wantedTime, note: request.note,
+      shortages: shortages.map((s) => s.name), selfCook,
+    }));
   return { writes: w.writes, events };
 });
 
-function unwind(w, state, order) {
+function unwind(w, state, request) {
   for (const s of state.shopping) {
-    const next = removeOrderReason(s, order.uid);
+    const next = removeOrderReason(s, request.uid);
     if (next !== s) w.put('pk_shopping', next);
   }
 }
 
-register('orders.cancel', 'any', (state, p, ctx, me) => {
-  const order = findOrder(state, p.uid);
-  if (order.userUid !== me.uid) throw fail('FORBIDDEN', '只能取消自己的单');
-  requireStatus(order, ['pending']);
+register('requests.take', 'any', (state, p, ctx, me) => {
+  const r = findRequest(state, p.uid);
+  if (r.status === 'taken') throw fail('CONFLICT', `已经有人接了：${nameOf(state, r.takerUid)}`);
+  requireStatus(r, ['open']);
   const w = writer();
-  unwind(w, state, order);
-  w.put('pk_orders', { ...order, status: 'cancelled', updatedIso: ctx.now });
-  return { writes: w.writes };
+  w.put('pk_orders', { ...r, status: 'taken', takerUid: me.uid, updatedIso: ctx.now });
+  return { writes: w.writes, events: eventTo(state, r.userUid, me.uid, { type: 'request.taken', taker: me.name, dishes: dishNames(r) }) };
 });
 
-register('orders.accept', 'chef', (state, p, ctx) => {
-  const order = findOrder(state, p.uid);
-  requireStatus(order, ['pending']);
+register('requests.release', 'any', (state, p, ctx, me) => {
+  const r = findRequest(state, p.uid);
+  requireStatus(r, ['taken']);
+  if (r.takerUid !== me.uid) throw fail('FORBIDDEN', '只有接下的人可以说做不了');
   const w = writer();
-  w.put('pk_orders', { ...order, status: 'accepted', updatedIso: ctx.now });
-  const to = ownerToken(state, order);
-  return { writes: w.writes, events: to ? [{ type: 'order.accepted', to, dishes: dishNames(order) }] : [] };
+  w.put('pk_orders', { ...r, status: 'open', takerUid: '', updatedIso: ctx.now });
+  return { writes: w.writes, events: eventTo(state, r.userUid, me.uid, { type: 'request.released', taker: me.name, dishes: dishNames(r) }) };
 });
 
-register('orders.reject', 'chef', (state, p, ctx) => {
-  const order = findOrder(state, p.uid);
-  requireStatus(order, ['pending', 'accepted']);
-  const reason = String(p.reason ?? '').trim();
-  if (!reason) throw fail('BAD_INPUT', '写一下为什么做不了');
+register('requests.cancel', 'any', (state, p, ctx, me) => {
+  const r = findRequest(state, p.uid);
+  if (r.userUid !== me.uid) throw fail('FORBIDDEN', '只能取消自己提的要求');
+  requireStatus(r, ['open', 'taken']);
   const w = writer();
-  unwind(w, state, order);
-  w.put('pk_orders', { ...order, status: 'rejected', rejectReason: reason, updatedIso: ctx.now });
-  const to = ownerToken(state, order);
-  return { writes: w.writes, events: to ? [{ type: 'order.rejected', to, dishes: dishNames(order), reason }] : [] };
+  unwind(w, state, r);
+  w.put('pk_orders', { ...r, status: 'cancelled', updatedIso: ctx.now });
+  return { writes: w.writes, events: eventTo(state, r.takerUid, me.uid, { type: 'request.cancelled', who: me.name, dishes: dishNames(r) }) };
 });
 
-register('orders.done', 'chef', (state, p, ctx) => {
-  const order = findOrder(state, p.uid);
-  requireStatus(order, ['accepted']);
+register('requests.done', 'any', (state, p, ctx, me) => {
+  const r = findRequest(state, p.uid);
+  requireStatus(r, ['taken']);
+  if (r.takerUid !== me.uid) throw fail('FORBIDDEN', '只有接下的人可以点做好了');
   const w = writer(state);
   const touched = [];
-  for (const n of order.needs) {
+  for (const n of r.needs) {
     const item = n.inventoryUid && w.state.inventory.find((i) => i.uid === n.inventoryUid);
     if (!item || item.kind !== 'main' || typeof n.qty !== 'number' || n.unitMismatch) continue;
     touched.push(w.put('pk_inventory', { ...item, qty: round1(Math.max(0, item.qty - n.qty)) }));
   }
-  w.put('pk_orders', { ...order, status: 'done', updatedIso: ctx.now });
-  const events = [];
-  const owner = ownerToken(state, order);
-  if (owner) events.push({ type: 'order.done', to: owner, dishes: dishNames(order) });
+  w.put('pk_orders', { ...r, status: 'done', updatedIso: ctx.now });
+  const events = eventTo(state, r.userUid, me.uid, { type: 'request.done', taker: me.name, dishes: dishNames(r) });
   for (const item of touched) {
     const listed = w.state.shopping.some((s) => s.inventoryUid === item.uid && !s.done && !s.removed);
     if (!lowStockCheck(item) || listed) continue;
     w.put('pk_shopping', addShoppingReason(w.state, ctx, {
       name: item.name, inventoryUid: item.uid, qty: 0, unit: item.unit, reason: { type: 'low' },
     }));
-    for (const to of chefTokens(state)) events.push({ type: 'stock.low', to, name: item.name });
+    if (me.pushToken) events.push({ type: 'stock.low', to: me.pushToken, name: item.name });
   }
   return { writes: w.writes, events };
 });
@@ -198,14 +204,14 @@ register('orders.done', 'chef', (state, p, ctx) => {
 export function availability(state) {
   const out = {};
   for (const r of state.recipes) {
-    if (r.archived || r.zone !== 'signature') continue;
+    if (r.archived) continue;
     const missing = computeShortages(computeNeeds([r], r.baseServings || 2, state.inventory), state).map((s) => s.name);
     out[r.uid] = { makeable: missing.length === 0, missing };
   }
   return out;
 }
 
-export function dishCounts(state) {
+export function doneCounts(state) {
   const out = {};
   for (const o of state.orders) {
     if (o.status !== 'done') continue;
@@ -214,4 +220,4 @@ export function dishCounts(state) {
   return out;
 }
 
-extendView((state) => ({ availability: availability(state), dishCounts: dishCounts(state) }));
+extendView((state) => ({ availability: availability(state), doneCounts: doneCounts(state) }));

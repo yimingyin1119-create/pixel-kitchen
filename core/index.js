@@ -3,7 +3,7 @@ import './auth.js';
 import './recipes.js';
 import './stock.js';
 import './shopping.js';
-import './orders.js';
+import './requests.js';
 
 export { handle, applyWrites } from './handle.js';
 export { authenticate } from './session.js';

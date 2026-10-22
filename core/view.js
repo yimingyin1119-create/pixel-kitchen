@@ -12,7 +12,7 @@ export function view(state, me, ctx) {
     me: { uid: me.uid, name: me.name, role: me.role, avatar: me.avatar, hasPush: Boolean(me.pushToken) },
     users: state.users.map((u) => ({ uid: u.uid, name: u.name, role: u.role, avatar: u.avatar })),
     recipes: state.recipes.filter((r) => !r.archived),
-    orders: state.orders,
+    requests: state.orders,
     inventory: state.inventory.filter((i) => !i.hidden),
     shopping: state.shopping.filter((s) => !s.removed),
   };

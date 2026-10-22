@@ -100,3 +100,26 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .pin-dots span.on { background: var(--tomato); }
 
 .sprite svg { display: block; }
+
+.dish { padding: 10px; margin: 12px 3px; }
+.dish-name { font-size: 16px; }
+.section-title { margin: 16px 4px 4px; font-size: 14px; color: var(--wood-dark); }
+
+.cart-bar {
+  position: fixed; left: 0; right: 0; bottom: 59px; display: flex; justify-content: center; pointer-events: none;
+}
+.cart-bar .px-box { pointer-events: auto; width: calc(100% - 26px); max-width: 454px; padding: 6px 10px; display: flex; align-items: center; justify-content: space-between; background: var(--milk); }
+
+.sheet-backdrop { position: fixed; inset: 0; background: rgba(74, 47, 26, 0.45); display: flex; align-items: flex-end; justify-content: center; z-index: 10; }
+.sheet { width: 100%; max-width: 480px; max-height: 88vh; overflow: auto; padding: 14px 16px 24px; margin: 0; background: var(--cream); }
+.sheet-close { background: none; border: 0; font-size: 18px; cursor: pointer; }
+.choice-row { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.choice-row .px-btn { padding: 5px 10px; }
+.field { display: block; margin: 10px 0 2px; font-size: 13px; }
+.field .px-input { display: block; margin-top: 4px; }
+textarea.px-input { min-height: 64px; resize: vertical; }
+
+.toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); padding: 8px 14px; background: var(--leaf); color: var(--milk); z-index: 20; white-space: nowrap; }
+
+.order-card { padding: 10px; margin: 10px 3px; }
+.order-card .actions { display: flex; gap: 4px; justify-content: flex-end; margin-top: 6px; }

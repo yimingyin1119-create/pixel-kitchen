@@ -7,6 +7,8 @@ import { Offline } from './ui/Offline.jsx';
 import { Login } from './pages/Login.jsx';
 import { Me } from './pages/Me.jsx';
 import { Placeholder } from './pages/Placeholder.jsx';
+import { Order } from './pages/Order.jsx';
+import { RecipesM1, InventoryM1 } from './pages/QuickAdd.jsx';
 
 const TOKEN_KEY = 'pk.token';
 
@@ -16,10 +18,10 @@ function tabFromHash() {
 }
 
 const PAGES = {
-  order: () => <Placeholder title="点菜" sprite="bowl" />,
-  recipes: () => <Placeholder title="菜谱" sprite="pot" />,
+  order: () => <Order />,
+  recipes: () => <RecipesM1 />,
   shopping: () => <Placeholder title="采购" sprite="cart" />,
-  inventory: () => <Placeholder title="食材库" sprite="fridge" />,
+  inventory: () => <InventoryM1 />,
   me: () => <Me />,
 };
 

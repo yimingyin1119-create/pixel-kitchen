@@ -1,0 +1,10 @@
+node_modules/
+.n8n-test/
+.superpowers/
+dist/
+n8n/dist/
+.env*
+!.env.example
+deploy/.env
+backups/
+.DS_Store

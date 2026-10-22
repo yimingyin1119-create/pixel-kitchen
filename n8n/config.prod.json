@@ -1,0 +1,7 @@
+{
+  "allowedOrigins": "https://GITHUB_USER.github.io",
+  "anthropicUrl": "https://api.anthropic.com/v1/messages",
+  "pushplusUrl": "https://www.pushplus.plus/send",
+  "timezone": "Asia/Singapore",
+  "anthropicCredentialId": "pkAnthropicCred1"
+}

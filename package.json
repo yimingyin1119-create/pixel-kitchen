@@ -2,8 +2,15 @@
   "name": "pixel-kitchen",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
-    "test": "node --test \"core/**/*.test.js\""
+    "test": "node --test \"core/**/*.test.js\" \"n8n/*.test.js\"",
+    "build:n8n": "node n8n/build.mjs",
+    "test:e2e": "node --test --test-concurrency=1 \"tests/e2e/*.e2e.test.js\""
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
   }
 }

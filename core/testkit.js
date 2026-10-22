@@ -7,7 +7,7 @@ let n = 0;
 export function mkCtx(over = {}) {
   n += 1;
   const rand = sha256Hex(`test-rand-${n}`);
-  return { now: '2026-10-22T10:00:00.000Z', rand, tz: 'Europe/Amsterdam', seq: 0, ...over };
+  return { now: '2026-10-22T10:00:00.000Z', rand, tz: 'Asia/Singapore', seq: 0, ...over };
 }
 
 export function emptyState() {

@@ -1,0 +1,7 @@
+{
+  "allowedOrigins": "*",
+  "anthropicUrl": "http://127.0.0.1:5690/anthropic/v1/messages",
+  "pushplusUrl": "http://127.0.0.1:5690/pushplus/send",
+  "timezone": "Asia/Singapore",
+  "anthropicCredentialId": "pkAnthropicCred1"
+}

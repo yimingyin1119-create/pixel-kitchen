@@ -80,7 +80,7 @@ test('available subtracts open orders', () => {
   const item = { uid: 'i1', qty: 600, unit: 'g' };
   const state = {
     orders: [
-      { uid: 'o1', status: 'pending', needs: [{ inventoryUid: 'i1', qty: 500 }] },
+      { uid: 'o1', status: 'open', needs: [{ inventoryUid: 'i1', qty: 500 }] },
       { uid: 'o2', status: 'done', needs: [{ inventoryUid: 'i1', qty: 300 }] },
     ],
   };

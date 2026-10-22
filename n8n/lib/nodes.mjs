@@ -69,6 +69,11 @@ export function builders({ workflowId, core, cfg }) {
         options: { createIfNotExists: true },
       }, pos, { executeOnce: true }),
 
+    dtDeleteTable: (t, pos) =>
+      node(`删表 ${t}`, 'n8n-nodes-base.dataTable', 1.1, {
+        resource: 'table', operation: 'delete', dataTableId: table(t),
+      }, pos, { executeOnce: true, alwaysOutputData: true, onError: 'continueRegularOutput' }),
+
     code: (name, body, pos, { withCore = false } = {}) =>
       node(name, 'n8n-nodes-base.code', 2, {
         mode: 'runOnceForAllItems', language: 'javaScript', jsCode: withCore ? `${core}\n${body}` : body,

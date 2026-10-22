@@ -29,7 +29,7 @@ export default function api({ core, cfg }) {
     B.sticky('## 点餐接口\n网页上的每个按钮都打到这里：先确认是谁，再把 7 张表读出来交给「业务处理」（规则写在 core/，有测试），最后把改动写回、把通知交给通知中心。\n同一时间只处理一个请求，避免两个人的改动互相覆盖。', [0, -1.6], [6, 1.4]),
     B.webhook('收到请求', 'pk/api', [0, 0]),
     B.cryptoRand('生成随机数', [1, 0]),
-    B.ifTrue('是登录类操作？', "={{ ['auth.setup', 'auth.login'].includes($('收到请求').first().json.body?.action) }}", [2, 0]),
+    B.ifTrue('是登录类操作？', "={{ ['auth.register', 'auth.login'].includes($('收到请求').first().json.body?.action) }}", [2, 0]),
     B.execWorkflow('登录校验', AUTH_ID, { wait: true }, [3, 1]),
     B.ifTrue('登录有效？', '={{ $json.ok }}', [4, 1]),
     B.respond('回复：请先登录', { status: 401 }, [5, 2.2]),
@@ -56,5 +56,5 @@ export default function api({ core, cfg }) {
     ['拆出通知', '交给通知中心'],
     ['业务处理', '回复网页'],
   );
-  return workflow({ id: API_ID, name: '乡村小厨 · 点餐接口', nodes, connections, cfg, webhook: true });
+  return workflow({ id: API_ID, name: '搭伙小灶 · 点餐接口', nodes, connections, cfg, webhook: true });
 }

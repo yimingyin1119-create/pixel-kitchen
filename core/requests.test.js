@@ -218,3 +218,17 @@ test('doneCounts only done', () => {
   assert.deepEqual(r.body.data.doneCounts, { r_pork: 1, r_tomato: 1 });
   assert.equal(r.body.data.requests.length, 2);
 });
+
+test('stock bought after asking is still deducted', () => {
+  const a = register(emptyState(), '小明', '1111');
+  const b = register(a.state, '小红', '2222');
+  let s = { ...b.state, recipes: [PORK] };
+  let r = call(s, 'requests.create', { items: ['r_pork'], servings: 3, ...when }, a.token);
+  const uid = req(r).uid;
+  const shop = r.state.shopping.find((x) => x.name === '五花肉');
+  r = call(r.state, 'shopping.check', { uid: shop.uid, boughtQty: 1, unit: 'kg' }, b.token);
+  assert.equal(r.state.inventory[0].qty, 1000);
+  r = call(r.state, 'requests.take', { uid }, b.token);
+  r = call(r.state, 'requests.done', { uid }, b.token);
+  assert.equal(r.state.inventory[0].qty, 250);
+});

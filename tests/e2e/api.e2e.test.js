@@ -19,64 +19,76 @@ after(async () => {
 
 const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Singapore' }).format(new Date());
 
-test('setup → login → create diner', async () => {
-  const setup = await n8n.api('auth.setup', { name: '大厨', pin: '1234' });
-  assert.equal(setup.status, 200, JSON.stringify(setup.body));
-  t.chef = setup.body.data.token;
-  const created = await n8n.api('users.create', { name: '小明', pin: '5678' }, t.chef);
-  assert.equal(created.status, 200, JSON.stringify(created.body));
-  const login = await n8n.api('auth.login', { name: '小明', pin: '5678' });
-  assert.equal(login.status, 200);
-  t.diner = login.body.data.token;
+async function pushTo(token, includes) {
+  for (let i = 0; i < 24; i++) {
+    const p = mock.pushes.find((x) => x.token === token && `${x.title}${x.content}`.includes(includes));
+    if (p) return p;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  assert.fail(`no push to ${token} containing ${includes}: ${JSON.stringify(mock.pushes)}`);
+}
+
+const ask = (token, items, extra = {}) => n8n.api('requests.create', { items, servings: 3, wantedDate: today, meal: 'dinner', wantedTime: '', note: '', ...extra }, token);
+
+test('register two members and see preset recipes', async () => {
+  const a = await n8n.api('auth.register', { name: '小明', pin: '1111' });
+  assert.equal(a.status, 200, JSON.stringify(a.body));
+  const b = await n8n.api('auth.register', { name: '小红', pin: '2222' });
+  assert.equal(b.status, 200);
+  t.a = a.body.data.token;
+  t.b = b.body.data.token;
+  await n8n.api('me.update', { pushToken: 'tok-a' }, t.a);
+  await n8n.api('me.update', { pushToken: 'tok-b' }, t.b);
+  const v = (await n8n.api('state.get', {}, t.a)).body.data;
+  assert.equal(v.recipes.length, 12);
+  t.pork = v.recipes.find((r) => r.name === '红烧肉').uid;
 });
 
 test('bad token is 401', async () => {
   const r = await n8n.api('state.get', {}, 'not-a-token');
   assert.equal(r.status, 401);
-  assert.equal(r.body.error.code, 'UNAUTHORIZED');
 });
 
-test('diner orders, chef gets push', async () => {
-  await n8n.api('me.update', { pushToken: 'tok-chef' }, t.chef);
-  await n8n.api('inventory.save', { item: { name: '五花肉', kind: 'main', qty: 800, unit: 'g', lowThreshold: 100 } }, t.chef);
-  const saved = await n8n.api('recipes.save', {
-    recipe: { name: '红烧肉', baseServings: 2, ingredients: [{ name: '五花肉', qty: 500, unit: 'g', kind: 'main' }] },
-  }, t.chef);
-  t.pork = saved.body.data.recipes[0].uid;
-  const placed = await n8n.api('orders.place', { items: [t.pork], servings: 3, wantedDate: today, meal: 'dinner', wantedTime: '', note: '' }, t.diner);
-  assert.equal(placed.status, 200, JSON.stringify(placed.body));
-  t.order = placed.body.data.orders[0].uid;
-  let push;
-  for (let i = 0; i < 20 && !push; i++) {
-    push = mock.pushes.find((p) => p.token === 'tok-chef' && p.content.includes('红烧肉'));
-    if (!push) await new Promise((r) => setTimeout(r, 250));
-  }
-  assert.ok(push, `push not received: ${JSON.stringify(mock.pushes)}`);
-  assert.match(push.content, /3人/);
-  assert.match(push.title, /小明/);
+test('A asks, B is told what is missing', async () => {
+  const r = await ask(t.a, [t.pork]);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  t.req = r.body.data.requests.at(-1).uid;
+  const push = await pushTo('tok-b', '红烧肉');
+  assert.match(push.title, /小明 想吃 红烧肉/);
+  assert.match(push.content, /缺：五花肉/);
+  assert.match(push.content, /已加进采购清单/);
 });
 
-test('done deducts stock persisted', async () => {
-  assert.equal((await n8n.api('orders.accept', { uid: t.order }, t.chef)).status, 200);
-  assert.equal((await n8n.api('orders.done', { uid: t.order }, t.chef)).status, 200);
-  const v = (await n8n.api('state.get', {}, t.chef)).body.data;
+test('ticking the shopping list stocks the kitchen', async () => {
+  const v = (await n8n.api('state.get', {}, t.b)).body.data;
+  const item = v.shopping.find((s) => s.name === '五花肉');
+  assert.equal(item.qty, 750);
+  assert.deepEqual(item.reasons[0].dishes, ['红烧肉']);
+  const r = await n8n.api('shopping.check', { uid: item.uid, boughtQty: 800, unit: 'g' }, t.b);
+  assert.equal(r.status, 200);
+  assert.equal(r.body.data.inventory.find((i) => i.name === '五花肉').qty, 800);
+});
+
+test('B takes and A hears about it', async () => {
+  const r = await n8n.api('requests.take', { uid: t.req }, t.b);
+  assert.equal(r.status, 200);
+  await pushTo('tok-a', '小红 接了你的');
+});
+
+test('B finishes, stock drops and A is called to eat', async () => {
+  const r = await n8n.api('requests.done', { uid: t.req }, t.b);
+  assert.equal(r.status, 200);
+  const v = (await n8n.api('state.get', {}, t.a)).body.data;
   assert.equal(v.inventory.find((i) => i.name === '五花肉').qty, 50);
-  assert.equal(v.dishCounts[t.pork], 1);
+  assert.equal(v.doneCounts[t.pork], 1);
+  await pushTo('tok-a', '出锅啦');
 });
 
-test('concurrent writes both land', async () => {
-  const add = await n8n.api('shopping.add', { name: '五花肉', qty: 500, unit: 'g' }, t.chef);
-  const shop = add.body.data.shopping.find((s) => s.name === '五花肉' && !s.done);
-  const [checked, placed] = await Promise.all([
-    n8n.api('shopping.check', { uid: shop.uid, boughtQty: 1000 }, t.chef),
-    n8n.api('orders.place', { items: [t.pork], servings: 2, wantedDate: today, meal: 'late', wantedTime: '', note: '' }, t.diner),
-  ]);
-  assert.equal(checked.status, 200);
-  assert.equal(placed.status, 200);
-  const v = (await n8n.api('state.get', {}, t.chef)).body.data;
-  assert.equal(v.inventory.find((i) => i.name === '五花肉').qty, 1050);
-  assert.equal(v.shopping.find((s) => s.uid === shop.uid).done, true);
-  assert.equal(v.orders.filter((o) => o.status === 'pending').length, 1);
+test('concurrent takes: one wins', async () => {
+  const r = await ask(t.a, [t.pork], { servings: 1 });
+  const uid = r.body.data.requests.at(-1).uid;
+  const [x, y] = await Promise.all([n8n.api('requests.take', { uid }, t.a), n8n.api('requests.take', { uid }, t.b)]);
+  assert.deepEqual([x.status, y.status].sort(), [200, 409]);
 });
 
 test('CORS preflight allowed', async () => {

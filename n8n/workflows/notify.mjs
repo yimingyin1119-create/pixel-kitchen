@@ -5,15 +5,18 @@ export const NOTIFY_ID = 'pkNotify00000001';
 const MEAL = "({ lunch: '午饭', dinner: '晚饭', late: '夜宵' })[$json.meal]";
 const DISHES = "$json.dishes.join('、')";
 
+const DATE = "{{ Number($json.wantedDate.slice(5, 7)) }}月{{ Number($json.wantedDate.slice(8, 10)) }}日";
+
 // [event type, branch label, title expression, content expression]
 export const MESSAGES = [
-  ['order.placed', '新订单', '=🍳 {{ $json.who }} 点菜啦',
-    `={{ ${DISHES} }}｜{{ $json.servings }}人｜{{ $json.wantedDate }} {{ ${MEAL} }}{{ $json.wantedTime ? ' ' + $json.wantedTime : '' }}{{ $json.note ? '｜备注：' + $json.note : '' }}{{ $json.shortages.length ? '｜缺：' + $json.shortages.join('、') : '' }}`],
-  ['order.accepted', '已接单', '=厨师接单啦', `={{ ${DISHES} }}`],
-  ['order.rejected', '被拒单', '=这单做不了', `={{ ${DISHES} }}：{{ $json.reason }}`],
-  ['order.done', '出锅了', `={{ ${DISHES} }} 出锅啦`, '=快来吃！'],
+  ['request.created', '新要求', `={{ $json.who }} 想吃 {{ ${DISHES} }}`,
+    `=${DATE} {{ ${MEAL} }}{{ $json.wantedTime ? ' ' + $json.wantedTime : '' }}｜{{ $json.servings }}人{{ $json.note ? '｜备注：' + $json.note : '' }}{{ $json.shortages.length ? '｜缺：' + $json.shortages.join('、') + '（已加进采购清单）' : '' }}{{ $json.selfCook ? '｜TA 自己做' : '' }}`],
+  ['request.taken', '有人接了', `={{ $json.taker }} 接了你的 {{ ${DISHES} }}`, '=等着开饭吧'],
+  ['request.released', '做不了', `={{ $json.taker }} 做不了 {{ ${DISHES} }}`, '=重新等人接'],
+  ['request.cancelled', '被取消', `={{ $json.who }} 取消了 {{ ${DISHES} }}`, '=不用做啦'],
+  ['request.done', '出锅了', `={{ ${DISHES} }} 出锅啦`, '={{ $json.taker }} 做的，快来吃！'],
   ['stock.low', '快用完了', '={{ $json.name }} 快用完了', '=已经加进采购清单'],
-  ['push.test', '测试推送', '=乡村小厨', '=推送设置成功 ✦'],
+  ['push.test', '测试推送', '=搭伙小灶', '=推送设置成功 ✦'],
 ];
 
 export default function notify({ core, cfg }) {
@@ -31,5 +34,5 @@ export default function notify({ core, cfg }) {
     ...MESSAGES.map(([, label], i) => ['事件类型', `拼消息：${label}`, i]),
     ...MESSAGES.map(([, label]) => [`拼消息：${label}`, '发到微信']),
   );
-  return workflow({ id: NOTIFY_ID, name: '乡村小厨 · 通知中心', nodes, connections, cfg });
+  return workflow({ id: NOTIFY_ID, name: '搭伙小灶 · 通知中心', nodes, connections, cfg });
 }

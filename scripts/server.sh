@@ -4,6 +4,7 @@
 #   server.sh provision   install Docker, folders and the nightly backup (once)
 #   server.sh deploy      build prod workflows, load them into n8n, start everything
 #   server.sh e2e         run the end-to-end tests on the server against a throwaway n8n
+#   server.sh reset       back up, then wipe all app data and write the preset recipes (asks you to type RESET)
 #   server.sh set-key     store the Anthropic API key as an n8n credential
 #   server.sh editor      open the n8n editor at http://localhost:5678 through an SSH tunnel
 #   server.sh logs        follow n8n logs
@@ -11,7 +12,7 @@ set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="$REPO/deploy/.env"
 REMOTE_DIR=/opt/pixel-kitchen
-WORKFLOW_IDS="pkAuth0000000001 pkNotify00000001 pkApi00000000001 pkSetup000000001"
+WORKFLOW_IDS="pkAuth0000000001 pkNotify00000001 pkApi00000000001 pkSetup000000001 pkReset000000001 pkSeed0000000001"
 
 load_env() {
   [ -f "$ENV_FILE" ] || { echo "先运行: scripts/server.sh init <服务器IP>"; exit 1; }
@@ -34,6 +35,7 @@ wait_and_setup() {
   remote "for i in \$(seq 1 60); do curl -fs $url/healthz >/dev/null && break; sleep 2; done
     for i in \$(seq 1 30); do code=\$(curl -s -o /dev/null -w '%{http_code}' -X POST $url/webhook/pk-setup); [ \"\$code\" = 200 ] && exit 0; sleep 2; done
     echo 'table setup failed'; exit 1"
+  remote "curl -fs -X POST $url/webhook/pk-seed"; echo
 }
 
 case "${1:-}" in
@@ -78,6 +80,21 @@ case "${1:-}" in
     remote "cd $REMOTE_DIR && sudo docker compose --profile e2e run --rm --use-aliases e2e-runner; code=\$?
       sudo docker compose --profile e2e logs n8n-e2e > repo/e2e-n8n.log 2>&1
       sudo docker compose --profile e2e down -v >/dev/null 2>&1; exit \$code"
+    ;;
+  reset)
+    load_env
+    echo "将要在 $PK_HOST 上："
+    echo "  1. 备份数据库到 $REMOTE_DIR/backups/pre-reset-<时间>.sqlite"
+    echo "  2. 删除全部 7 张数据表（账号、菜谱、要求、食材、采购……）"
+    echo "  3. 重新建表，并写入 12 道预设菜谱"
+    printf '确定的话输入 RESET：'
+    read -r answer
+    [ "$answer" = "RESET" ] || { echo "没有输入 RESET，什么都没做。"; exit 1; }
+    stamp=$(date +%Y%m%d-%H%M%S)
+    remote "cd $REMOTE_DIR && sudo sqlite3 n8n-data/database.sqlite \".backup backups/pre-reset-$stamp.sqlite\" && ls -la backups/pre-reset-$stamp.sqlite"
+    remote "curl -fs -X POST http://127.0.0.1:5678/webhook/pk-reset"; echo
+    wait_and_setup http://127.0.0.1:5678
+    echo "重置完成。需要恢复时：停掉 n8n，用 backups/pre-reset-$stamp.sqlite 替换 n8n-data/database.sqlite，再启动。"
     ;;
   set-key)
     load_env

@@ -7,9 +7,11 @@ import auth from './workflows/auth.mjs';
 import api from './workflows/api.mjs';
 import notify from './workflows/notify.mjs';
 import setup from './workflows/setup.mjs';
+import reset from './workflows/reset.mjs';
+import seed from './workflows/seed.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const WORKFLOWS = [auth, api, notify, setup];
+const WORKFLOWS = [auth, api, notify, setup, reset, seed];
 
 async function coreBundle() {
   const out = await build({
@@ -22,7 +24,8 @@ async function coreBundle() {
 export async function buildAll(env, { write = true } = {}) {
   const cfg = JSON.parse(await readFile(path.join(here, `config.${env}.json`), 'utf8'));
   const core = await coreBundle();
-  const workflows = WORKFLOWS.map((make) => make({ core, cfg }));
+  const seedRecipes = JSON.parse(await readFile(path.join(here, '../seed/recipes.json'), 'utf8'));
+  const workflows = WORKFLOWS.map((make) => make({ core, cfg, seedRecipes }));
   if (write) {
     const dist = path.join(here, 'dist');
     await rm(dist, { recursive: true, force: true });

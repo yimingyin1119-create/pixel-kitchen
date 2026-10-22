@@ -4,14 +4,26 @@ import { convert, normalizeUnit, round1 } from './units.js';
 import { matchIngredient } from './recipes.js';
 import { sameName } from './names.js';
 
-const OPEN = ['pending', 'accepted'];
+const OPEN = ['open', 'taken'];
 
-// Stock left once every other open order has taken what it needs.
-export function available(item, state, exceptOrderUid) {
+// A need recorded before its ingredient was in stock gets linked to the stock item bought later.
+export function resolveNeed(n, inventory) {
+  if (n.inventoryUid || n.unitMismatch || typeof n.qty !== 'number') return n;
+  const item = matchIngredient(n.name, inventory);
+  if (!item) return n;
+  const qty = convert(n.qty, n.unit, item.unit);
+  return qty === null ? { ...n, unitMismatch: true, qty: null } : { ...n, inventoryUid: item.uid, qty: round1(qty), unit: item.unit };
+}
+
+// Stock left once every other open request has taken what it needs.
+export function available(item, state, exceptRequestUid) {
   let reserved = 0;
   for (const o of state.orders) {
-    if (o.uid === exceptOrderUid || !OPEN.includes(o.status)) continue;
-    for (const n of o.needs ?? []) if (n.inventoryUid === item.uid && typeof n.qty === 'number') reserved += n.qty;
+    if (o.uid === exceptRequestUid || !OPEN.includes(o.status)) continue;
+    for (const n0 of o.needs ?? []) {
+      const n = resolveNeed(n0, state.inventory);
+      if (n.inventoryUid === item.uid && typeof n.qty === 'number') reserved += n.qty;
+    }
   }
   return round1(item.qty - reserved);
 }

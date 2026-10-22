@@ -3,7 +3,7 @@ import { newId } from './ids.js';
 import { convert, round1 } from './units.js';
 import { localDate } from './time.js';
 import { matchIngredient } from './recipes.js';
-import { available, lowStockCheck } from './stock.js';
+import { available, lowStockCheck, resolveNeed } from './stock.js';
 import { addShoppingReason, removeOrderReason } from './shopping.js';
 import { extendView } from './view.js';
 
@@ -183,12 +183,13 @@ register('requests.done', 'any', (state, p, ctx, me) => {
   if (r.takerUid !== me.uid) throw fail('FORBIDDEN', '只有接下的人可以点做好了');
   const w = writer(state);
   const touched = [];
-  for (const n of r.needs) {
+  const needs = r.needs.map((n) => resolveNeed(n, w.state.inventory));
+  for (const n of needs) {
     const item = n.inventoryUid && w.state.inventory.find((i) => i.uid === n.inventoryUid);
     if (!item || item.kind !== 'main' || typeof n.qty !== 'number' || n.unitMismatch) continue;
     touched.push(w.put('pk_inventory', { ...item, qty: round1(Math.max(0, item.qty - n.qty)) }));
   }
-  w.put('pk_orders', { ...r, status: 'done', updatedIso: ctx.now });
+  w.put('pk_orders', { ...r, needs, status: 'done', updatedIso: ctx.now });
   const events = eventTo(state, r.userUid, me.uid, { type: 'request.done', taker: me.name, dishes: dishNames(r) });
   for (const item of touched) {
     const listed = w.state.shopping.some((s) => s.inventoryUid === item.uid && !s.done && !s.removed);

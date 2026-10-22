@@ -10,7 +10,9 @@ const nodes = (wf, type) => wf.nodes.filter((n) => n.type === type);
 const node = (wf, name) => wf.nodes.find((n) => n.name === name);
 
 test('builds the M1 workflows', () => {
-  for (const id of ['pkAuth0000000001', 'pkApi00000000001', 'pkNotify00000001', 'pkSetup000000001']) assert.ok(byId[id], id);
+  for (const id of ['pkAuth0000000001', 'pkApi00000000001', 'pkNotify00000001', 'pkSetup000000001', 'pkReset000000001', 'pkSeed0000000001']) {
+    assert.ok(byId[id], id);
+  }
 });
 
 test('api writes every table', () => {
@@ -30,7 +32,7 @@ test('respond is bottom-most branch', () => {
 
 test('core inlined only where needed', () => {
   const withCore = workflows.flatMap((w) => w.nodes.filter((n) => n.parameters?.jsCode?.includes('var PK')).map((n) => n.name));
-  assert.deepEqual(withCore.sort(), ['业务处理', '核对会话']);
+  assert.deepEqual(withCore.sort(), ['业务处理', '准备预设', '核对会话'].sort());
 });
 
 test('core works inside the n8n sandbox, where Object.defineProperty is a no-op', () => {
@@ -79,3 +81,34 @@ test('push goes to configured url', () => {
 });
 
 test('no secrets in dist', () => assert.ok(!JSON.stringify(workflows).includes('sk-ant')));
+
+test('seed and reset are internal paths', () => {
+  for (const id of ['pkSetup000000001', 'pkReset000000001', 'pkSeed0000000001']) {
+    const path = nodes(byId[id], 'n8n-nodes-base.webhook')[0].parameters.path;
+    assert.ok(!path.startsWith('pk/'), path);
+  }
+});
+
+test('reset deletes every table and keeps going if one is missing', () => {
+  const del = nodes(byId.pkReset000000001, 'n8n-nodes-base.dataTable').filter((n) => n.parameters.operation === 'delete');
+  assert.deepEqual(del.map((n) => n.parameters.dataTableId.value).sort(), Object.keys(TABLES).sort());
+  for (const n of del) assert.equal(n.onError, 'continueRegularOutput');
+});
+
+test('seed recipes are inlined', () => {
+  const prep = node(byId.pkSeed0000000001, '准备预设').parameters.jsCode;
+  assert.ok(prep.includes('红烧肉') && prep.includes('清炒菜心'));
+});
+
+test('notify has seven branches', () => {
+  const sw = nodes(byId.pkNotify00000001, 'n8n-nodes-base.switch')[0];
+  assert.deepEqual(sw.parameters.rules.values.map((v) => v.outputKey),
+    ['新要求', '有人接了', '做不了', '被取消', '出锅了', '快用完了', '测试推送']);
+});
+
+test('register and login skip the login check', () => {
+  const expr = node(api, '是登录类操作？').parameters.conditions.conditions[0].leftValue;
+  assert.match(expr, /'auth\.register'/);
+  assert.match(expr, /'auth\.login'/);
+  assert.doesNotMatch(expr, /auth\.setup/);
+});

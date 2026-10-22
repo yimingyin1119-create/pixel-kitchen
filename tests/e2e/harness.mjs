@@ -44,6 +44,8 @@ export async function startN8n() {
     await new Promise((res) => setTimeout(res, 500));
   }
   if (setup.status !== 200) throw new Error(`table setup failed: ${setup.status} ${await setup.text()}`);
+  const seeded = await fetch(`${BASE}/webhook/pk-seed`, { method: 'POST' });
+  if (seeded.status !== 200) throw new Error(`seed failed: ${seeded.status} ${await seeded.text()}`);
   return {
     async api(action, payload = {}, token = '') {
       const r = await fetch(`${BASE}/webhook/pk/api`, {

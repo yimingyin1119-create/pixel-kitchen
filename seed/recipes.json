@@ -1,0 +1,128 @@
+[
+  {
+    "name": "番茄炒蛋", "baseServings": 2,
+    "ingredients": [
+      { "name": "番茄", "qty": 2, "unit": "个", "kind": "main" },
+      { "name": "鸡蛋", "qty": 3, "unit": "个", "kind": "main" },
+      { "name": "盐", "qty": null, "unit": "适量", "kind": "seasoning" },
+      { "name": "糖", "qty": null, "unit": "适量", "kind": "seasoning" }
+    ],
+    "steps": ["番茄切块，鸡蛋打散加一点盐", "热油把鸡蛋炒到刚凝固，盛出", "再下番茄炒出汁，加一点糖", "倒回鸡蛋翻匀，尝味后出锅"]
+  },
+  {
+    "name": "红烧肉", "baseServings": 2,
+    "ingredients": [
+      { "name": "五花肉", "qty": 500, "unit": "g", "kind": "main" },
+      { "name": "生抽", "qty": 2, "unit": "大勺", "kind": "seasoning" },
+      { "name": "老抽", "qty": 1, "unit": "大勺", "kind": "seasoning" },
+      { "name": "冰糖", "qty": null, "unit": "适量", "kind": "seasoning" },
+      { "name": "姜", "qty": null, "unit": "适量", "kind": "seasoning" },
+      { "name": "葱", "qty": null, "unit": "适量", "kind": "seasoning" }
+    ],
+    "steps": ["五花肉切块，冷水下锅焯水后洗净", "小火把冰糖炒成枣红色，下肉块翻炒上色", "加生抽、老抽、姜、葱和没过肉的热水", "小火炖 1 小时，大火收汁"]
+  },
+  {
+    "name": "可乐鸡翅", "baseServings": 2,
+    "ingredients": [
+      { "name": "鸡中翅", "qty": 8, "unit": "个", "kind": "main" },
+      { "name": "可乐", "qty": 330, "unit": "ml", "kind": "main" },
+      { "name": "生抽", "qty": 2, "unit": "大勺", "kind": "seasoning" },
+      { "name": "姜", "qty": null, "unit": "适量", "kind": "seasoning" }
+    ],
+    "steps": ["鸡翅两面划刀，焯水后擦干", "少油把鸡翅煎到两面金黄", "加姜片、生抽和整罐可乐", "中小火煮 15 分钟，收到汁浓发亮"]
+  },
+  {
+    "name": "番茄牛腩", "baseServings": 2,
+    "ingredients": [
+      { "name": "牛腩", "qty": 500, "unit": "g", "kind": "main" },
+      { "name": "番茄", "qty": 3, "unit": "个", "kind": "main" },
+      { "name": "番茄酱", "qty": 2, "unit": "大勺", "kind": "seasoning" },
+      { "name": "姜", "qty": null, "unit": "适量", "kind": "seasoning" },
+      { "name": "葱", "qty": null, "unit": "适量", "kind": "seasoning" }
+    ],
+    "steps": ["牛腩切块焯水", "番茄切块，一半炒成番茄酱汁", "下牛腩、姜、葱和热水，小火炖 1.5 小时", "加剩下的番茄和番茄酱，再炖 15 分钟"]
+  },
+  {
+    "name": "麻婆豆腐", "baseServings": 2,
+    "ingredients": [
+      { "name": "嫩豆腐", "qty": 1, "unit": "盒", "kind": "main" },
+      { "name": "猪肉末", "qty": 100, "unit": "g", "kind": "main" },
+      { "name": "郫县豆瓣酱", "qty": 1, "unit": "大勺", "kind": "seasoning" },
+      { "name": "花椒粉", "qty": null, "unit": "适量", "kind": "seasoning" },
+      { "name": "蒜", "qty": null, "unit": "适量", "kind": "seasoning" }
+    ],
+    "steps": ["豆腐切小块，在淡盐水里焯一下", "肉末炒散，下豆瓣酱和蒜末炒出红油", "加少量水，放入豆腐煮 3 分钟", "勾薄芡，撒花椒粉出锅"]
+  },
+  {
+    "name": "宫保鸡丁", "baseServings": 2,
+    "ingredients": [
+      { "name": "鸡胸肉", "qty": 300, "unit": "g", "kind": "main" },
+      { "name": "花生米", "qty": 50, "unit": "g", "kind": "main" },
+      { "name": "干辣椒", "qty": null, "unit": "适量", "kind": "seasoning" },
+      { "name": "生抽", "qty": null, "unit": "适量", "kind": "seasoning" },
+      { "name": "醋", "qty": null, "unit": "适量", "kind": "seasoning" },
+      { "name": "糖", "qty": null, "unit": "适量", "kind": "seasoning" }
+    ],
+    "steps": ["鸡胸切丁，用少许生抽和淀粉抓匀", "生抽、醋、糖、少许淀粉调成碗汁", "爆香干辣椒，下鸡丁炒到变色", "倒入碗汁和花生米，翻匀出锅"]
+  },
+  {
+    "name": "青椒土豆丝", "baseServings": 2,
+    "ingredients": [
+      { "name": "土豆", "qty": 2, "unit": "个", "kind": "main" },
+      { "name": "青椒", "qty": 1, "unit": "个", "kind": "main" },
+      { "name": "醋", "qty": 1, "unit": "大勺", "kind": "seasoning" },
+      { "name": "盐", "qty": null, "unit": "适量", "kind": "seasoning" }
+    ],
+    "steps": ["土豆切细丝，泡水洗去淀粉", "青椒切丝", "大火热油下土豆丝快炒 2 分钟", "加青椒、盐，沿锅边淋醋，翻匀出锅"]
+  },
+  {
+    "name": "蒜蓉西兰花", "baseServings": 2,
+    "ingredients": [
+      { "name": "西兰花", "qty": 1, "unit": "个", "kind": "main" },
+      { "name": "蒜", "qty": null, "unit": "适量", "kind": "seasoning" },
+      { "name": "盐", "qty": null, "unit": "适量", "kind": "seasoning" },
+      { "name": "蚝油", "qty": null, "unit": "适量", "kind": "seasoning" }
+    ],
+    "steps": ["西兰花掰小朵，淡盐水泡 10 分钟", "开水焯 1 分钟捞出", "爆香蒜末，下西兰花翻炒", "加盐和一点蚝油，炒匀出锅"]
+  },
+  {
+    "name": "蛋炒饭", "baseServings": 2,
+    "ingredients": [
+      { "name": "米饭", "qty": 2, "unit": "碗", "kind": "main" },
+      { "name": "鸡蛋", "qty": 2, "unit": "个", "kind": "main" },
+      { "name": "葱", "qty": null, "unit": "适量", "kind": "seasoning" },
+      { "name": "盐", "qty": null, "unit": "适量", "kind": "seasoning" }
+    ],
+    "steps": ["隔夜饭打散，鸡蛋打匀", "热油炒鸡蛋到半熟", "下米饭大火翻炒到粒粒分明", "加盐和葱花，出锅"]
+  },
+  {
+    "name": "葱油拌面", "baseServings": 2,
+    "ingredients": [
+      { "name": "面条", "qty": 200, "unit": "g", "kind": "main" },
+      { "name": "小葱", "qty": 1, "unit": "把", "kind": "main" },
+      { "name": "生抽", "qty": 2, "unit": "大勺", "kind": "seasoning" },
+      { "name": "老抽", "qty": null, "unit": "适量", "kind": "seasoning" },
+      { "name": "糖", "qty": null, "unit": "适量", "kind": "seasoning" }
+    ],
+    "steps": ["小葱切段，小火熬到焦黄，做成葱油", "葱油里加生抽、老抽、糖，煮开成酱汁", "面条煮熟捞出", "拌上葱油酱汁即可"]
+  },
+  {
+    "name": "紫菜蛋花汤", "baseServings": 2,
+    "ingredients": [
+      { "name": "紫菜", "qty": 1, "unit": "片", "kind": "main" },
+      { "name": "鸡蛋", "qty": 1, "unit": "个", "kind": "main" },
+      { "name": "盐", "qty": null, "unit": "适量", "kind": "seasoning" },
+      { "name": "香油", "qty": null, "unit": "适量", "kind": "seasoning" }
+    ],
+    "steps": ["水烧开，放入撕碎的紫菜", "鸡蛋打散，转圈淋入锅里", "加盐，关火后滴几滴香油"]
+  },
+  {
+    "name": "清炒菜心", "baseServings": 2,
+    "ingredients": [
+      { "name": "菜心", "qty": 300, "unit": "g", "kind": "main" },
+      { "name": "蒜", "qty": null, "unit": "适量", "kind": "seasoning" },
+      { "name": "盐", "qty": null, "unit": "适量", "kind": "seasoning" }
+    ],
+    "steps": ["菜心洗净，掐掉老叶", "大火爆香蒜末", "下菜心快速翻炒到断生", "加盐炒匀出锅"]
+  }
+]

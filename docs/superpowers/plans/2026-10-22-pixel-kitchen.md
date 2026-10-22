@@ -4,7 +4,7 @@
 
 **Goal:** 一个在微信里打开的像素风点餐 + 厨房管理网页：点菜 → 厨师微信收到推送 → 做好自动扣库存 → 缺料进采购清单 → 买回入库；AI 从链接/多张截图拆菜谱、拍小票入库；每日 menu、徽章、排行榜。n8n 流程清晰可读，可放进作品集。
 
-**Architecture:** 容易算错的规则（鉴权、换算、扣库存、采购合并、徽章、推荐）写在零依赖纯 JS 模块 `core/`，TDD；核心入口 `handle(action, state, payload, ctx)`。n8n 负责可读的自动化流程：「点餐接口」「登录校验（子流程）」「通知中心」「导入菜谱」「小票入库」「每日早报」「建表」，中文节点名 + 便签；需要计算的 Code 节点内联 esbuild 打包的 `core`。工作流 JSON 由 `n8n/build.mjs` 生成并用 n8n CLI 导入。生产环境第一天就在欧洲 VPS 上用 Docker 跑 n8n，Caddy 提供 HTTPS 且只放行 `/webhook/pk/*`；前端 Vite + Preact 静态站部署到 GitHub Pages，后端地址构建时写死。
+**Architecture:** 容易算错的规则（鉴权、换算、扣库存、采购合并、徽章、推荐）写在零依赖纯 JS 模块 `core/`，TDD；核心入口 `handle(action, state, payload, ctx)`。n8n 负责可读的自动化流程：「点餐接口」「登录校验（子流程）」「通知中心」「导入菜谱」「小票入库」「每日早报」「建表」，中文节点名 + 便签；需要计算的 Code 节点内联 esbuild 打包的 `core`。工作流 JSON 由 `n8n/build.mjs` 生成并用 n8n CLI 导入。生产环境第一天就在腾讯云新加坡轻量服务器上用 Docker 跑 n8n，Caddy 提供 HTTPS 且只放行 `/webhook/pk/*`；前端 Vite + Preact 静态站部署到 GitHub Pages，后端地址构建时写死。
 
 **Tech Stack:** Node 24、n8n 2.44.6（Data Tables、task runners）、esbuild、Docker Compose、Caddy 2、Vite + Preact、Vitest + @testing-library/preact、Claude API（`claude-haiku-5-5`，原生 HTTP）、PushPlus、Fusion Pixel 12px。
 
@@ -15,12 +15,12 @@
 - 仓库根：`/Users/yinyiming/Documents/Claude/pixel-kitchen`；`git init`；`.gitignore` 含 `node_modules/ .n8n-test/ .superpowers/ dist/ n8n/dist/ .env* deploy/.env backups/`。
 - Node ≥ 24；n8n 锁 `2.44.6`：本地测试装在 `n8n/runtime/`，生产用镜像 `n8nio/n8n:2.44.6`。Mac 无 Homebrew，npm 全局目录 `~/.npm-global`。
 - **里程碑门槛**：M1（Task 1–10）、M2（11–13）、M3（14–15）、M4（16–18）。每个里程碑最后一步是用户微信真机验收；没过不进入下一个里程碑。
-- 时区 `Europe/Amsterdam`；“今天”= 该时区日期。界面简体中文，标题「乡村小厨」。
+- 时区 `Asia/Singapore`（用户和厨师都在新加坡，2026-10-23 修订）；“今天”= 该时区日期。界面简体中文，标题「乡村小厨」。
 - 视觉方向 A · 暖木农舍，token 精确值：`--cream #f6e7c8`、`--ink-wood #6b3f1d`（像素描边）、`--wood #a0683a`、`--wood-dark #8b5a2b`、`--tomato #c8423a`、`--milk #fff6e6`、`--paper #fffaf0`、`--gold #f2b33d`、`--leaf #5c8a3a`、`--text #4a2f1a`、缺料标签 底 `#e9d3a8` 字 `#8a3a2a`。3px 缺角像素框（box-shadow 四向 3px）。格子棚 `repeating-linear-gradient(90deg,#c8423a 0 14px,#fff6e6 14px 28px)` 高 14px。样稿：`.superpowers/brainstorm/18164-1792680910/content/visual-style.html` 卡片 A（含可复用的像素小图渲染器）。
 - 字体 Fusion Pixel 12px 简体（OFL-1.1），子集化（ASCII + GB2312 一级字 + 用到的符号）woff2 自托管，附 `OFL.txt`。
 - Claude：`claude-haiku-5-5`；`POST https://api.anthropic.com/v1/messages`；头 `anthropic-version: 2026-10-21`、`x-api-key`（n8n 凭据 Header Auth，名 `Anthropic API`，id `pkAnthropicCred1`）；`output_config: {effort:"low", format:{type:"json_schema", schema}}`；**不得**发送 `temperature/top_p/top_k/thinking.budget_tokens`；`max_tokens: 16000`；先判断 `stop_reason`（`refusal`/`max_tokens` 视为失败），取第一个 `type==="text"` 块解析 JSON。key 只存在 n8n 凭据里，不进前端、git、日志、聊天。
 - PushPlus：`POST https://www.pushplus.plus/send`，`{token, title, content, template:"txt"}`；HTTP 节点 `onError: continueRegularOutput`，推送失败不影响业务。
-- n8n 运行环境变量（本地测试与生产一致）：`GENERIC_TIMEZONE=Europe/Amsterdam`、`N8N_CONCURRENCY_PRODUCTION_LIMIT=1`、`EXECUTIONS_DATA_PRUNE=true`、`EXECUTIONS_DATA_MAX_AGE=168`、`N8N_DIAGNOSTICS_ENABLED=false`、`N8N_PERSONALIZATION_ENABLED=false`。所有 webhook 工作流 `settings: {executionOrder:'v1', saveDataSuccessExecution:'none', saveManualExecutions:false, timezone:'Europe/Amsterdam'}`。
+- n8n 运行环境变量（本地测试与生产一致）：`GENERIC_TIMEZONE=Asia/Singapore`、`N8N_CONCURRENCY_PRODUCTION_LIMIT=1`、`EXECUTIONS_DATA_PRUNE=true`、`EXECUTIONS_DATA_MAX_AGE=168`、`N8N_DIAGNOSTICS_ENABLED=false`、`N8N_PERSONALIZATION_ENABLED=false`。所有 webhook 工作流 `settings: {executionOrder:'v1', saveDataSuccessExecution:'none', saveManualExecutions:false, timezone:'Europe/Amsterdam'}`。
 - 生产：VPS（用户购买，助手不付款）上 Docker Compose：`n8n`（端口只绑 `127.0.0.1:5678`）+ `caddy`（80/443）。Caddy 只代理 `/webhook/pk/*`，其余 404。域名默认 `<ip用短横线>.sslip.io`，证书失败则请用户买域名。编辑器只通过 `ssh -L 5678:127.0.0.1:5678` 访问。
 - Data Table 名 `pk_` 前缀；不可占用系统列 `id/createdAt/updatedAt`；主键列 `uid`，时间列 `createdIso/updatedIso`。
 - 登录：名字 + 4 位数字口令；连错 5 次锁 15 分钟；会话 30 天。
@@ -59,7 +59,7 @@
 
 ```js
 /** State：所有表反序列化后的数组 {users,sessions,recipes,inventory,orders,shopping,menu} */
-/** Ctx：{now:ISO, rand:64-hex, tz:'Europe/Amsterdam', seq:number} */
+/** Ctx：{now:ISO, rand:64-hex, tz:'Asia/Singapore', seq:number, token:string} */
 /** Result：{status, body, writes:{[table]:row[]}, events:Event[]} */
 /** Event：{type:'order.placed'|'order.accepted'|'order.rejected'|'order.done'|'stock.low'|'push.test'|'digest', to:string /*pushToken*/, ...字段} */
 ```
@@ -288,7 +288,7 @@ test('bad token is 401')
 - `server.sh <cmd>`（读 `deploy/.env` 里的 `PK_HOST`）：`provision`（ssh：装 Docker 官方包、ufw 只开 22/80/443、`sqlite3`、建 `/opt/pixel-kitchen`、写备份 cron）、`deploy`（build prod → rsync `deploy/` 和 `n8n/dist/` → `docker compose stop n8n` → `docker compose run --rm n8n import:workflow --separate --input=/workflows` → `publish:workflow --all` → `execute --id=pkSetup00000001` → `up -d`）、`set-key`（调用 `set-anthropic-key.sh --docker`：在用户本机终端 `read -s` 读 key，经 ssh 标准输入传给 `docker compose exec -T n8n sh -c 'cat > /tmp/c.json && n8n import:credentials --input=/tmp/c.json; rm -f /tmp/c.json'`）、`editor`（`ssh -N -L 5678:127.0.0.1:5678`）、`logs`
 - 备份：服务器 cron `0 4 * * *` → `sqlite3 n8n-data/database.sqlite ".backup backups/pk-$(date +%F).sqlite"`，保留 14 份；`backup-pull.sh` rsync 到 `~/Library/Mobile Documents/com~apple~CloudDocs/乡村小厨备份/`
 
-- [ ] **Step 1:** 请用户购买 VPS（建议 Hetzner 最低档，欧洲机房，Ubuntu 24.04），创建时添加 Mac 的 SSH 公钥（没有就先 `ssh-keygen -t ed25519`）；用户把 IP 告诉助手。安装 Docker 前向用户说明会从 Docker 官方源安装。
+- [ ] **Step 1:** （已完成）用户已购买腾讯云轻量应用服务器，新加坡地域，Ubuntu 24.04，2 核 4G，并导入了 Mac 的 SSH 公钥。SSH 用户 `ubuntu`（需要 sudo），在 `deploy/.env` 里填 `PK_HOST`、`PK_SSH_USER=ubuntu`。腾讯云轻量自带防火墙，要确认放行 22/80/443。
 - [ ] **Step 2:** `server.sh provision`；`PK_DOMAIN=<ip短横线>.sslip.io`。
 - [ ] **Step 3:** `server.sh deploy`；验证 `curl -s -o /dev/null -w '%{http_code}' https://$PK_DOMAIN/` 为 404，`curl -X POST https://$PK_DOMAIN/webhook/pk/api -d '{"action":"state.get"}' -H 'content-type: application/json'` 返回 401 JSON，证书有效。
 - [ ] **Step 4:** 用户运行 `server.sh set-key` 粘贴 Anthropic key（若还没买，见 Task 18 README 步骤，可推迟到 M2 前）。
@@ -347,7 +347,7 @@ test('bad token is 401')
 - `RECIPE_SCHEMA`、`RECEIPT_SCHEMA`（`additionalProperties:false`、全 required；菜谱 `{isRecipe, name, baseServings, ingredients:[{name,qty:number|null,unit,kind}], steps, tags, imageUrl}`；小票 `{lines:[{rawName,name,qty,unit}]}`）
 - `classifySource({url?, text?}) -> 'xhs'|'douyin'|'web'|'text'`（域名含 xiaohongshu/xhslink → xhs；douyin/iesdouyin → douyin）；`findUrl(text)`
 - `extractPageText(html,url)->{text,imageUrl}`（og 标签、ld+json Recipe、去标签正文，截 12000 字）
-- `buildRecipeRequest({text?, images?:[{base64,mediaType}], inventoryNames})`：images 最多 6，图片块在文本前；`buildReceiptRequest({image, inventoryNames})`；提示词在 `prompts.js`（中文；食材名尽量用 inventoryNames；多图合并成一份；荷兰语商品译中文）
+- `buildRecipeRequest({text?, images?:[{base64,mediaType}], inventoryNames})`：images 最多 6，图片块在文本前；`buildReceiptRequest({image, inventoryNames})`；提示词在 `prompts.js`（中文；食材名尽量用 inventoryNames；多图合并成一份；英文商品名译中文）
 - `parseClaudeJson(resp) -> {ok,value}|{ok:false,code:'UPSTREAM'|'NEEDS_FALLBACK',message}`
 
 - [ ] **Step 1: 失败测试**：`request shape`（model、effort low、json_schema、无 temperature/top_p/top_k、图片在文本前）、`at most six images`（7 张 → 抛 BAD_INPUT）、`classify xhs share text`、`findUrl from share text`、`extract ld+json recipe`、`refusal yields error`、`not a recipe asks fallback`、`thinking blocks are skipped`。
@@ -406,12 +406,12 @@ test('bad token is 401')
 
 **Interfaces — Produces:**
 - `Shopping`：未买/已买两段；勾选弹数量框（默认 qty，单位可选，可填保质期）→ `shopping.check`；已买项「撤销」→ `shopping.uncheck`；原因小字（「红烧肉那单缺」「快用完了」「手动添加」）；手动添加
-- `ReceiptScan`：拍照 → 逐行（荷兰语原名小字 + 中文名 + 数量 + 去向下拉）→ `shopping.applyReceipt`
+- `ReceiptScan`：拍照 → 逐行（小票原文小字 + 中文名 + 数量 + 去向下拉）→ `shopping.applyReceipt`
 - `Inventory`：主料/调料分组；主料数量+单位+阈值+保质期（≤3 天标红「快过期」）；调料三态 有/快没了/没了；新建/编辑弹层
 
 - [ ] **Step 1: 失败测试**：`check opens qty dialog with default`、`uncheck available on done items`、`receipt ignore excluded from payload`、`expiring badge within 3 days`、`seasoning status cycles`。
 - [ ] **Step 2–4:** FAIL → 实现 → PASS
-- [ ] **Step 5:** 部署；用户真机：拍一张 Albert Heijn 小票入库、勾采购入库、改调料状态。**M3 门槛**。
+- [ ] **Step 5:** 部署；用户真机：拍一张 FairPrice 或昇菘小票入库、勾采购入库、改调料状态。**M3 门槛**。
 - [ ] **Step 6:** `git commit -m "feat(web): shopping, receipt, inventory"`
 
 # M4 · 每日 menu、游戏化、早报、作品集

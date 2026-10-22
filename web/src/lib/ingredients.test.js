@@ -15,3 +15,9 @@ test('formats lines back for editing', () => {
   expect(parseIngredientLine(formatIngredientLine({ name: '生抽', qty: 1, unit: '大勺', kind: 'seasoning' })))
     .toEqual({ name: '生抽', qty: 1, unit: '大勺', kind: 'seasoning' });
 });
+
+test('lines typed without spaces still split', () => {
+  expect(parseIngredientLine('鸡蛋3个')).toEqual({ name: '鸡蛋', qty: 3, unit: '个', kind: 'main' });
+  expect(parseIngredientLine('五花肉500g')).toEqual({ name: '五花肉', qty: 500, unit: 'g', kind: 'main' });
+  expect(parseIngredientLine('生抽1.5大勺')).toEqual({ name: '生抽', qty: 1.5, unit: '大勺', kind: 'seasoning' });
+});

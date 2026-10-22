@@ -74,3 +74,15 @@ test('delete asks to confirm', async () => {
   await waitFor(() => expect(act).toHaveBeenCalled());
   expect(act.mock.calls[0].slice(0, 2)).toEqual(['recipes.archive', { uid: 'r1' }]);
 });
+
+test('renaming a dish to a taken name keeps the edits', async () => {
+  const act = vi.fn().mockRejectedValue(new ApiError('CONFLICT', '已经有「葱油拌面」了', 409));
+  renderWithApp(<Recipes />, { view: view(), act });
+  fireEvent.click(screen.getByRole('button', { name: '红烧肉' }));
+  fireEvent.click(screen.getByRole('button', { name: '改' }));
+  fireEvent.input(screen.getByLabelText('菜名'), { target: { value: '葱油拌面' } });
+  fireEvent.click(screen.getByRole('button', { name: '保存' }));
+  expect(await screen.findByText(/已经有「葱油拌面」了/)).toBeTruthy();
+  expect(screen.getByLabelText('菜名').value).toBe('葱油拌面');
+  expect(screen.getByLabelText('食材（一行一样）').value).toBe('五花肉 500 g\n盐 适量');
+});

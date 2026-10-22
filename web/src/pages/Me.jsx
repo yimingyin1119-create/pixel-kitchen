@@ -37,33 +37,12 @@ function PushSetup() {
 }
 
 function Members() {
-  const { view, act } = useApp();
-  const [who, setWho] = useState('');
-  const [pin, setPin] = useState('');
-  const [msg, setMsg] = useState('');
-  const [run, pending, error] = useAction();
-  const reset = () => run(async () => {
-    if (await act('users.resetPin', { uid: who, pin })) {
-      setMsg(`已经把 ${view.users.find((u) => u.uid === who)?.name ?? ''} 的口令改成新的了`);
-      setPin('');
-    }
-  });
+  const { view } = useApp();
   return (
     <PixelBox class="page">
       <div>一起搭伙的人</div>
       <p class="muted">{view.users.map((u) => u.name).join('、')}</p>
-      <div class="muted">有人忘了口令？帮 TA 设一个新的：</div>
-      <label class="field">帮谁重置
-        <select class="px-input" value={who} onChange={(e) => setWho(e.currentTarget.value)}>
-          <option value="">选一个人</option>
-          {view.users.map((u) => <option key={u.uid} value={u.uid}>{u.name}</option>)}
-        </select>
-      </label>
-      <label class="field">新口令
-        <input class="px-input" inputMode="numeric" maxLength={4} value={pin} onInput={(e) => setPin(e.currentTarget.value)} />
-      </label>
-      <Button variant="secondary" disabled={pending || !who || pin.length !== 4} onClick={reset}>重置口令</Button>
-      {(error || msg) && <p class="muted" role="status">{error || msg}</p>}
+      <p class="muted">有人忘了口令？请管服务器的那位在电脑上帮忙重置。</p>
     </PixelBox>
   );
 }

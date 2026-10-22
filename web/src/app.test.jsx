@@ -113,3 +113,81 @@ test('brand name everywhere', () => {
   expect(screen.getByText('一起开小灶')).toBeTruthy();
   expect(document.body.textContent).not.toContain('乡村小厨');
 });
+
+function TwoActions() {
+  const { view: v, act } = useApp();
+  const [msg, setMsg] = useState('');
+  const run = (tag) => act('me.update', { avatar: tag }, { optimistic: (cur) => ({ ...cur, me: { ...cur.me, name: `${tag}的猜测` } }) })
+    .catch((e) => setMsg(e.message));
+  return <div><span data-testid="name">{v.me.name}</span><button type="button" onClick={() => run('a')}>A</button><button type="button" onClick={() => run('b')}>B</button><p>{msg}</p></div>;
+}
+
+test('a failed action restores the last confirmed view, not an older snapshot', async () => {
+  const { AppProvider } = await import('./app.jsx');
+  loggedIn('tokA0000xyz', view('小明'));
+  let failA;
+  let serverName = '小明';
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+    const body = JSON.parse(init.body);
+    if (body.action === 'me.update' && body.payload.avatar === 'a') return new Promise((r) => { failA = r; });
+    if (body.action === 'me.update') serverName = 'B已确认';
+    return json({ ok: true, data: view(serverName) });
+  });
+  render(<AppProvider><TwoActions /></AppProvider>);
+  await waitFor(() => expect(screen.getByTestId('name').textContent).toBe('小明'));
+  fireEvent.click(screen.getByRole('button', { name: 'A' }));
+  fireEvent.click(screen.getByRole('button', { name: 'B' }));
+  await waitFor(() => expect(screen.getByTestId('name').textContent).toBe('B已确认'));
+  failA(json({ ok: false, error: { code: 'CONFLICT', message: '状态变了' } }, 409));
+  expect(await screen.findByText('状态变了')).toBeTruthy();
+  expect(screen.getByTestId('name').textContent).toBe('B已确认');
+});
+
+function Switcher() {
+  const { view: v, act, signOut, signedIn } = useApp();
+  return (
+    <div>
+      <span data-testid="name">{v?.me?.name ?? '无'}</span>
+      <button type="button" onClick={() => act('me.update', { avatar: 'slow' }).catch(() => {})}>慢请求</button>
+      <button type="button" onClick={() => { signOut(); signedIn('tokB0000xyz', view('小红')); }}>换人</button>
+    </div>
+  );
+}
+
+test('a late response after switching accounts is dropped', async () => {
+  const { AppProvider } = await import('./app.jsx');
+  loggedIn('tokA0000xyz', view('小明'));
+  let slow;
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+    const body = JSON.parse(init.body);
+    if (body.payload?.avatar === 'slow') return new Promise((r) => { slow = r; });
+    if (body.action === 'state.get') return json({ ok: true, data: view(body.token === 'tokB0000xyz' ? '小红' : '小明') });
+    return json({ ok: true, data: null });
+  });
+  render(<AppProvider><Switcher /></AppProvider>);
+  await waitFor(() => expect(screen.getByTestId('name').textContent).toBe('小明'));
+  fireEvent.click(screen.getByRole('button', { name: '慢请求' }));
+  fireEvent.click(screen.getByRole('button', { name: '换人' }));
+  expect(screen.getByTestId('name').textContent).toBe('小红');
+  slow(json({ ok: true, data: view('小明的数据') }));
+  await new Promise((r) => setTimeout(r, 20));
+  expect(screen.getByTestId('name').textContent).toBe('小红');
+  expect(JSON.parse(localStorage.getItem('pk.view.tokB0000')).me.name).toBe('小红');
+});
+
+test('refreshes when the page comes back into view', async () => {
+  loggedIn('tokA0000xyz', view('小明'));
+  const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(json({ ok: true, data: view('小明') }));
+  render(<App />);
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+  Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+  document.dispatchEvent(new Event('visibilitychange'));
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+});
+
+test('a server error on first load offers a retry', async () => {
+  loggedIn();
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(json({ message: 'Error in workflow' }, 500));
+  render(<App />);
+  expect(await screen.findByRole('button', { name: '再试一次' })).toBeTruthy();
+});

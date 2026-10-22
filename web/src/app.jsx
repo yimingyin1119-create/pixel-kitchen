@@ -31,6 +31,7 @@ export function AppProvider({ children }) {
   const [offline, setOffline] = useState(false);
   const [highlight, setHighlight] = useState(null);
   const viewRef = useRef(view);
+  const confirmedRef = useRef(view); // last view the server sent; failed actions roll back to this
   const tokenRef = useRef(token);
   viewRef.current = view;
   tokenRef.current = token;
@@ -38,6 +39,7 @@ export function AppProvider({ children }) {
   const keep = (v, tok = tokenRef.current) => {
     setView(v);
     viewRef.current = v;
+    confirmedRef.current = v;
     if (tok) storage.set(cacheKey(tok), JSON.stringify(v));
   };
 
@@ -49,6 +51,8 @@ export function AppProvider({ children }) {
     }
     storage.remove(TOKEN_KEY);
     tokenRef.current = null;
+    viewRef.current = null;
+    confirmedRef.current = null;
     setToken(null);
     setView(null);
     setOffline(false);
@@ -62,16 +66,19 @@ export function AppProvider({ children }) {
     setOffline(false);
   };
 
+  // Results that arrive after the account changed are dropped, so one member never sees another's data.
   const refresh = async (tok = tokenRef.current) => {
     if (!tok) return;
     setSyncing(true);
     try {
-      keep(await call('state.get', {}, tok), tok);
+      const v = await call('state.get', {}, tok);
+      if (tokenRef.current !== tok) return;
+      keep(v, tok);
       setOffline(false);
     } catch (err) {
-      if (err instanceof OfflineError) setOffline(true);
-      else if (err instanceof ApiError && err.status === 401) signOut();
-      else throw err;
+      if (tokenRef.current !== tok) return;
+      if (err instanceof ApiError && err.status === 401) signOut();
+      else setOffline(true);
     } finally {
       setSyncing(false);
     }
@@ -85,6 +92,7 @@ export function AppProvider({ children }) {
 
   // Shows the optimistic view at once; the server's answer replaces it, an error puts the old one back.
   const act = async (action, payload, opts = {}) => {
+    const tok = tokenRef.current;
     const before = viewRef.current;
     if (opts.optimistic && before) {
       const guess = opts.optimistic(before);
@@ -92,16 +100,19 @@ export function AppProvider({ children }) {
       viewRef.current = guess;
     }
     try {
-      const data = await call(action, payload, tokenRef.current);
+      const data = await call(action, payload, tok);
+      if (tokenRef.current !== tok) return undefined;
       if (data?.me) {
-        keep(data);
+        keep(data, tok);
         flash(typeof opts.highlight === 'function' ? opts.highlight(data, before) : opts.highlight);
       }
       setOffline(false);
       return data;
     } catch (err) {
-      setView(before);
-      viewRef.current = before;
+      if (tokenRef.current !== tok) return undefined;
+      setView(confirmedRef.current);
+      viewRef.current = confirmedRef.current;
+      if (!(err instanceof ApiError && err.status === 401)) refresh(tok);
       if (err instanceof OfflineError) {
         setOffline(true);
         throw new ApiError('OFFLINE', '网络断了，这一下没成功，稍后再试', 0);
@@ -114,7 +125,18 @@ export function AppProvider({ children }) {
     }
   };
 
-  useEffect(() => { refresh(token); }, []);
+  useEffect(() => {
+    refresh(token);
+    // Coming back to the WeChat tab: pick up what the others changed meanwhile.
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
+    const onShow = (e) => { if (e.persisted) refresh(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('pageshow', onShow);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('pageshow', onShow);
+    };
+  }, []);
 
   const value = { view, me: view?.me, token, act, refresh, signOut, signedIn, syncing, offline, highlight, setHighlight: flash };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

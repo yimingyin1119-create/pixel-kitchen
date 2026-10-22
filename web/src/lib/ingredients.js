@@ -5,10 +5,20 @@ const SEASONING_UNITS = ['适量', '少许', '大勺', '小勺', '勺', '汤匙'
 export function parseIngredientLine(line) {
   const text = String(line).trim();
   if (!text) return null;
-  const [, name, rest = ''] = text.match(/^(\S+)\s*(.*)$/);
-  const m = rest.match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
-  const qty = m ? Number(m[1]) : null;
-  const unit = (m ? m[2] : rest).trim() || (qty === null ? '适量' : '');
+  // "鸡蛋3个" and "鸡蛋 3 个" both split into name / number / unit; no number means 适量.
+  const m = text.match(/^(.+?)\s*(\d+(?:\.\d+)?)\s*(\S*)\s*$/);
+  let name;
+  let qty = null;
+  let unit;
+  if (m && m[1].trim()) {
+    name = m[1].trim();
+    qty = Number(m[2]);
+    unit = m[3];
+  } else {
+    const [, first, rest = ''] = text.match(/^(\S+)\s*(.*)$/);
+    name = first;
+    unit = rest.trim() || '适量';
+  }
   const kind = qty === null || SEASONING_UNITS.includes(unit) ? 'seasoning' : 'main';
   return { name, qty, unit, kind };
 }

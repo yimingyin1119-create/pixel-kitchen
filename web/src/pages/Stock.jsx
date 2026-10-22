@@ -38,7 +38,7 @@ function StockSheet({ item, onClose, onDone }) {
       });
       if (data) onDone(`${payload.name} 存好了`);
     } catch (err) {
-      const existing = err.code === 'CONFLICT' && view.inventory.find((i) => !i.hidden && sameName(i.name, payload.name));
+      const existing = !form.uid && err.code === 'CONFLICT' && view.inventory.find((i) => !i.hidden && sameName(i.name, payload.name));
       if (!existing) throw err;
       setForm(formOf(existing));
       setError(err.message);

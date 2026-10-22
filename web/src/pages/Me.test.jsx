@@ -34,12 +34,10 @@ test('members are listed without roles', () => {
   expect(screen.queryByText(/厨师/)).toBe(null);
 });
 
-test('reset pin for a member', async () => {
-  const { act } = renderWithApp(<Me />, { view: view() });
-  fireEvent.change(screen.getByLabelText('帮谁重置'), { target: { value: 'c1' } });
-  fireEvent.input(screen.getByLabelText('新口令'), { target: { value: '1357' } });
-  fireEvent.click(screen.getByRole('button', { name: '重置口令' }));
-  await waitFor(() => expect(act).toHaveBeenCalledWith('users.resetPin', { uid: 'c1', pin: '1357' }));
+test('pin resets are not offered in the app', () => {
+  renderWithApp(<Me />, { view: view() });
+  expect(screen.queryByRole('button', { name: '重置口令' })).toBe(null);
+  expect(screen.getByText(/忘了口令/)).toBeTruthy();
 });
 
 test('sign out', () => {

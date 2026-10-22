@@ -38,7 +38,7 @@ export function RecipeSheet({ recipe, onClose, onSaved }) {
       });
       if (data) onSaved?.(`「${payload.name}」存好了`);
     } catch (err) {
-      const existing = err.code === 'CONFLICT' && view.recipes.find((r) => !r.archived && sameName(r.name, payload.name));
+      const existing = !form.uid && err.code === 'CONFLICT' && view.recipes.find((r) => !r.archived && sameName(r.name, payload.name));
       if (!existing) throw err;
       setForm(formOf(existing));
       setError(`${err.message}，可以在这里改`);

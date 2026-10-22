@@ -16,9 +16,9 @@ export function matchIngredient(name, allInventory) {
   const n = String(name ?? '').trim();
   const b = bare(n);
   return (
-    inventory.find((i) => i.name === n) ??
-    inventory.find((i) => (i.aliases ?? []).includes(n)) ??
-    inventory.find((i) => bare(i.name) === b || (i.aliases ?? []).some((a) => bare(a) === b)) ??
+    inventory.find((i) => sameName(i.name, n)) ??
+    inventory.find((i) => (i.aliases ?? []).some((a) => sameName(a, n))) ??
+    inventory.find((i) => sameName(bare(i.name), b) || (i.aliases ?? []).some((a) => sameName(bare(a), b))) ??
     null
   );
 }

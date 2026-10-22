@@ -83,3 +83,9 @@ test('wish-list actions are gone', () => {
   assert.equal(call(a.state, 'recipes.promote', { uid: 'x' }, a.token).status, 400);
   assert.equal(call(a.state, 'recipes.vote', { uid: 'x' }, a.token).status, 400);
 });
+
+test('match ignores letter case and spaces', () => {
+  const inv = [{ uid: 'c1', name: 'Coke', aliases: ['Cola'], kind: 'main', qty: 1, unit: 'ml' }];
+  assert.equal(matchIngredient('coke', inv).uid, 'c1');
+  assert.equal(matchIngredient(' cola ', inv).uid, 'c1');
+});

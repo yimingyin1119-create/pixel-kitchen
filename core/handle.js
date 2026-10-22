@@ -9,7 +9,7 @@ const STATUS = {
 
 const ACTIONS = {};
 
-// role: 'public' (no login) or 'any' (any logged-in member; there are no other roles)
+// role: 'public' (no login), 'any' (any logged-in member), 'internal' (server-local admin webhook only)
 export function register(name, role, run) {
   ACTIONS[name] = { role, run };
 }
@@ -56,9 +56,9 @@ export function writer(state) {
 export function handle(action, state, payload, ctx) {
   const entry = ACTIONS[action];
   try {
-    if (!entry) throw fail('BAD_INPUT', '不认识的操作');
+    if (!entry || (entry.role === 'internal' && ctx.internal !== true)) throw fail('BAD_INPUT', '不认识的操作');
     let me = null;
-    if (entry.role !== 'public') {
+    if (entry.role === 'any') {
       me = authenticate(state, ctx.token, ctx.now);
       if (!me) throw fail('UNAUTHORIZED', '请先登录');
     }

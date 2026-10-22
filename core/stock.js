@@ -7,10 +7,12 @@ import { sameName } from './names.js';
 const OPEN = ['open', 'taken'];
 
 // A need recorded before its ingredient was in stock gets linked to the stock item bought later.
+// A link to a deleted (hidden) item is re-resolved by name among the visible ones.
 export function resolveNeed(n, inventory) {
-  if (n.inventoryUid || n.unitMismatch || typeof n.qty !== 'number') return n;
+  if (n.unitMismatch || typeof n.qty !== 'number') return n;
+  if (n.inventoryUid && inventory.some((i) => i.uid === n.inventoryUid && !i.hidden)) return n;
   const item = matchIngredient(n.name, inventory);
-  if (!item) return n;
+  if (!item) return { ...n, inventoryUid: null };
   const qty = convert(n.qty, n.unit, item.unit);
   return qty === null ? { ...n, unitMismatch: true, qty: null } : { ...n, inventoryUid: item.uid, qty: round1(qty), unit: item.unit };
 }
@@ -35,9 +37,8 @@ export function lowStockCheck(item) {
 // Adds bought goods to stock; creates the item when nothing matches. Returns the item and the amount
 // added in the item's own unit.
 export function stockIn(state, ctx, { inventoryUid, name, qty, unit, expiresOn }) {
-  const item = inventoryUid
-    ? state.inventory.find((i) => i.uid === inventoryUid)
-    : matchIngredient(name, state.inventory);
+  const linked = inventoryUid && state.inventory.find((i) => i.uid === inventoryUid && !i.hidden);
+  const item = linked || matchIngredient(name, state.inventory);
   const extra = { stockedIso: ctx.now, ...(expiresOn ? { expiresOn } : {}) };
   if (!item) {
     const base = normalizeUnit(unit);

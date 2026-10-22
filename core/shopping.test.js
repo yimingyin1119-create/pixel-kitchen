@@ -77,8 +77,9 @@ test('uncheck reverses', () => {
 });
 
 test('available subtracts open orders', () => {
-  const item = { uid: 'i1', qty: 600, unit: 'g' };
+  const item = { uid: 'i1', name: '五花肉', qty: 600, unit: 'g' };
   const state = {
+    inventory: [item],
     orders: [
       { uid: 'o1', status: 'open', needs: [{ inventoryUid: 'i1', qty: 500 }] },
       { uid: 'o2', status: 'done', needs: [{ inventoryUid: 'i1', qty: 300 }] },
@@ -131,4 +132,24 @@ test('only manual shopping items can be removed', () => {
   assert.equal(r.state.shopping[0].removed, true);
   const forDish = { ...r.state, shopping: [{ uid: 's2', name: '肉', inventoryUid: '', qty: 1, unit: 'g', reasons: [{ type: 'order', orderUid: 'o1', qty: 1 }], done: false, boughtQty: 0, doneIso: '', removed: false }] };
   assert.equal(call(forDish, 'shopping.remove', { uid: 's2' }, c.token).status, 400);
+});
+
+test('manual item with different case stocks into the existing item', () => {
+  const c = chefWithStock([{ name: 'Coke', kind: 'main', qty: 330, unit: 'ml', lowThreshold: 0 }]);
+  let r = call(c.state, 'shopping.add', { name: 'coke', qty: 330, unit: 'ml' }, c.token);
+  r = call(r.state, 'shopping.check', { uid: r.state.shopping[0].uid, boughtQty: 330, unit: 'ml' }, c.token);
+  assert.equal(r.state.inventory.length, 1);
+  assert.equal(r.state.inventory[0].qty, 660);
+});
+
+test('a row linked to a deleted item stocks the visible one', () => {
+  const c = chefWithStock([{ name: '鸡蛋', kind: 'main', qty: 2, unit: '个', lowThreshold: 0 }]);
+  const old = c.state.inventory[0].uid;
+  let r = call(c.state, 'shopping.add', { name: '鸡蛋', qty: 6, unit: '个' }, c.token);
+  r = call(r.state, 'inventory.remove', { uid: old }, c.token);
+  r = call(r.state, 'inventory.save', { item: { name: '鸡蛋', kind: 'main', qty: 1, unit: '个' } }, c.token);
+  const fresh = r.state.inventory.find((i) => !i.hidden).uid;
+  r = call(r.state, 'shopping.check', { uid: r.state.shopping[0].uid, boughtQty: 6, unit: '个' }, c.token);
+  assert.equal(r.state.inventory.find((i) => i.uid === fresh).qty, 7);
+  assert.equal(r.state.inventory.find((i) => i.uid === old).qty, 2);
 });

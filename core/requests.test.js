@@ -232,3 +232,25 @@ test('stock bought after asking is still deducted', () => {
   r = call(r.state, 'requests.done', { uid }, b.token);
   assert.equal(r.state.inventory[0].qty, 250);
 });
+
+test('done deducts the visible item when the linked one was deleted', () => {
+  const k = kitchen();
+  let r = create(k);
+  const uid = req(r).uid;
+  const old = r.state.inventory.find((i) => i.name === '五花肉').uid;
+  r = call(r.state, 'inventory.remove', { uid: old }, k.a.token);
+  r = call(r.state, 'inventory.save', { item: { name: '五花肉', kind: 'main', qty: 1000, unit: 'g', lowThreshold: 0 } }, k.a.token);
+  r = call(r.state, 'requests.take', { uid }, k.b.token);
+  r = call(r.state, 'requests.done', { uid }, k.b.token);
+  assert.equal(r.state.inventory.find((i) => i.name === '五花肉' && !i.hidden).qty, 250);
+  assert.equal(r.state.inventory.find((i) => i.uid === old).qty, 800);
+});
+
+test('shortage tag clears once the stock is bought', () => {
+  const k = kitchen({ porkQty: 200 });
+  let r = create(k);
+  assert.deepEqual(r.body.data.requests[0].shortages.map((s) => s.name), ['五花肉']);
+  const shop = r.state.shopping.find((s) => s.name === '五花肉');
+  r = call(r.state, 'shopping.check', { uid: shop.uid, boughtQty: 600, unit: 'g' }, k.b.token);
+  assert.deepEqual(r.body.data.requests[0].shortages, []);
+});

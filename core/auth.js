@@ -8,7 +8,8 @@ import { sameName } from './names.js';
 const SESSION_DAYS = 30;
 const MAX_FAILS = 5;
 const LOCK_MINUTES = 15;
-export const MAX_MEMBERS = 6;
+// Two people for now (spec: 先做两个人的); raise it here and redeploy to let more join.
+export const MAX_MEMBERS = 2;
 
 export function hashPin(pin, salt) {
   return sha256Hex(`${salt}:${pin}`);
@@ -89,14 +90,16 @@ register('auth.logout', 'any', (state, p, ctx) => {
 
 register('state.get', 'any', () => ({}));
 
-register('users.resetPin', 'any', (state, p, ctx) => {
+// Only reachable through the server-local admin webhook (scripts/server.sh reset-pin), never the public API.
+register('admin.resetPin', 'internal', (state, p, ctx) => {
   checkPin(p.pin);
-  const user = state.users.find((u) => u.uid === p.uid);
+  const user = state.users.find((u) => sameName(u.name, p.name));
   if (!user) throw fail('NOT_FOUND', '找不到这个人');
   const pinSalt = newSalt(ctx, user.uid);
   const w = writer();
   w.put('pk_users', { ...user, pinSalt, pinHash: hashPin(p.pin, pinSalt), failedLogins: 0, lockedUntilIso: '' });
-  return { writes: w.writes };
+  for (const s of state.sessions) if (s.userUid === user.uid && s.expiresIso > ctx.now) w.put('pk_sessions', { ...s, expiresIso: ctx.now });
+  return { writes: w.writes, data: { ok: true, name: user.name } };
 });
 
 register('me.update', 'any', (state, p, ctx, me) => {

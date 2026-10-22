@@ -21,12 +21,12 @@ test('register rejects duplicate name', () => {
   assert.equal(call(a.state, 'auth.register', { name: ' 小明 ', pin: '1111' }).status, 409);
 });
 
-test('register is capped at six members', () => {
+test('register is capped at two members for now', () => {
   let state = emptyState();
-  for (let i = 1; i <= 6; i++) state = register(state, `人${i}`).state;
-  const r = call(state, 'auth.register', { name: '人7', pin: '1111' });
+  for (let i = 1; i <= 2; i++) state = register(state, `人${i}`).state;
+  const r = call(state, 'auth.register', { name: '人3', pin: '1111' });
   assert.equal(r.status, 403);
-  assert.match(r.body.error.message, /6/);
+  assert.match(r.body.error.message, /2/);
 });
 
 test('old setup and member creation are gone', () => {
@@ -104,12 +104,20 @@ test('every member sees inventory and shopping', () => {
   assert.ok(Array.isArray(v.shopping));
 });
 
-test('any member can reset a pin', () => {
+test('members cannot reset each other\'s pin', () => {
   const a = register(emptyState(), '小明');
   const b = register(a.state, '小红', '5678');
-  const r = call(b.state, 'users.resetPin', { uid: b.uid, pin: '9999' }, a.token);
+  assert.equal(call(b.state, 'users.resetPin', { uid: b.uid, pin: '9999' }, a.token).status, 400);
+});
+
+test('admin pin reset only works from the server', () => {
+  const a = register(emptyState(), '小明');
+  const b = register(a.state, '小红', '5678');
+  assert.equal(call(b.state, 'admin.resetPin', { name: '小红', pin: '9999' }, a.token).status, 400);
+  const r = call(b.state, 'admin.resetPin', { name: ' 小红 ', pin: '9999' }, '', { internal: true });
   assert.equal(r.status, 200);
   assert.equal(call(r.state, 'auth.login', { name: '小红', pin: '9999' }).status, 200);
+  assert.equal(call(r.state, 'state.get', {}, b.token).status, 401);
 });
 
 test('testPush without token', () => {

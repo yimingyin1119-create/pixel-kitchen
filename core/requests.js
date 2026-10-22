@@ -221,4 +221,11 @@ export function doneCounts(state) {
   return out;
 }
 
-extendView((state) => ({ availability: availability(state), doneCounts: doneCounts(state) }));
+// Shortages on live requests are recomputed against today's stock, so buying the missing item clears the tag.
+function liveRequests(state) {
+  return state.orders.map((o) => (o.status === 'open' || o.status === 'taken'
+    ? { ...o, shortages: computeShortages(o.needs.map((n) => resolveNeed(n, state.inventory)), state, o.uid) }
+    : o));
+}
+
+extendView((state) => ({ requests: liveRequests(state), availability: availability(state), doneCounts: doneCounts(state) }));

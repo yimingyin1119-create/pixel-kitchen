@@ -5,6 +5,7 @@
 #   server.sh deploy      build prod workflows, load them into n8n, start everything
 #   server.sh e2e         run the end-to-end tests on the server against a throwaway n8n
 #   server.sh reset       back up, then wipe all app data and write the preset recipes (asks you to type RESET)
+#   server.sh reset-pin   give a member who forgot their pin a new one (typed here, not shown)
 #   server.sh set-key     store the Anthropic API key as an n8n credential
 #   server.sh editor      open the n8n editor at http://localhost:5678 through an SSH tunnel
 #   server.sh logs        follow n8n logs
@@ -12,7 +13,7 @@ set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="$REPO/deploy/.env"
 REMOTE_DIR=/opt/pixel-kitchen
-WORKFLOW_IDS="pkAuth0000000001 pkNotify00000001 pkApi00000000001 pkSetup000000001 pkReset000000001 pkSeed0000000001"
+WORKFLOW_IDS="pkAuth0000000001 pkNotify00000001 pkApi00000000001 pkSetup000000001 pkReset000000001 pkSeed0000000001 pkAdmin000000001"
 
 load_env() {
   [ -f "$ENV_FILE" ] || { echo "先运行: scripts/server.sh init <服务器IP>"; exit 1; }
@@ -95,6 +96,13 @@ case "${1:-}" in
     remote "curl -fs -X POST http://127.0.0.1:5678/webhook/pk-reset"; echo
     wait_and_setup http://127.0.0.1:5678
     echo "重置完成。需要恢复时：停掉 n8n，用 backups/pre-reset-$stamp.sqlite 替换 n8n-data/database.sqlite，再启动。"
+    ;;
+  reset-pin)
+    load_env
+    printf '谁忘了口令（名字）：'; read -r who
+    printf '新的 4 位口令（输入时不显示）：'; read -rs pin; echo
+    body=$(WHO="$who" PIN="$pin" node -e 'process.stdout.write(JSON.stringify({action:"admin.resetPin",payload:{name:process.env.WHO,pin:process.env.PIN}}))')
+    printf '%s' "$body" | remote "curl -s -X POST -H 'content-type: application/json' --data-binary @- http://127.0.0.1:5678/webhook/pk-admin"; echo
     ;;
   set-key)
     load_env

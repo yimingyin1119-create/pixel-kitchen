@@ -21,5 +21,5 @@ export default function setup({ core, cfg }) {
     ...tables.slice(1).map(([t], i) => [`建表 ${tables[i][0]}`, `建表 ${t}`]),
     [`建表 ${tables.at(-1)[0]}`, '建好了'],
   );
-  return workflow({ id: SETUP_ID, name: '搭伙小灶 · 建表', nodes, connections, cfg, webhook: true });
+  return workflow({ id: SETUP_ID, name: '搭伙小灶 · 建表', nodes, connections, cfg });
 }

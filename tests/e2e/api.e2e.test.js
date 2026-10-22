@@ -99,3 +99,17 @@ test('CORS preflight allowed', async () => {
   assert.ok(r.status < 300, String(r.status));
   assert.ok(r.headers.get('access-control-allow-origin'));
 });
+
+test('members cannot reset pins, the server-local admin endpoint can', async () => {
+  const blocked = await n8n.api('users.resetPin', { name: '小红', pin: '9999' }, t.a);
+  assert.equal(blocked.status, 400);
+  const sneaky = await n8n.api('admin.resetPin', { name: '小红', pin: '9999' }, t.a);
+  assert.equal(sneaky.status, 400);
+  const r = await fetch(`${BASE}/webhook/pk-admin`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'admin.resetPin', payload: { name: '小红', pin: '9999' } }),
+  });
+  assert.equal(r.status, 200);
+  assert.equal((await n8n.api('state.get', {}, t.b)).status, 401);
+  assert.equal((await n8n.api('auth.login', { name: '小红', pin: '9999' })).status, 200);
+});

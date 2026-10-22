@@ -32,7 +32,7 @@ test('respond is bottom-most branch', () => {
 
 test('core inlined only where needed', () => {
   const withCore = workflows.flatMap((w) => w.nodes.filter((n) => n.parameters?.jsCode?.includes('var PK')).map((n) => n.name));
-  assert.deepEqual(withCore.sort(), ['业务处理', '准备预设', '核对会话'].sort());
+  assert.deepEqual(withCore.sort(), ['业务处理', '业务处理', '准备预设', '核对会话'].sort());
 });
 
 test('core works inside the n8n sandbox, where Object.defineProperty is a no-op', () => {
@@ -111,4 +111,21 @@ test('register and login skip the login check', () => {
   assert.match(expr, /'auth\.register'/);
   assert.match(expr, /'auth\.login'/);
   assert.doesNotMatch(expr, /auth\.setup/);
+});
+
+test('no workflow keeps successful executions', () => {
+  for (const w of workflows) assert.equal(w.settings.saveDataSuccessExecution, 'none', w.name);
+});
+
+test('workflows that read sessions keep no error data either', () => {
+  for (const id of ['pkApi00000000001', 'pkAuth0000000001', 'pkAdmin000000001']) {
+    assert.equal(byId[id].settings.saveDataErrorExecution, 'none', id);
+  }
+});
+
+test('admin endpoint is internal and the only one that sets ctx.internal', () => {
+  const admin = byId.pkAdmin000000001;
+  assert.equal(nodes(admin, 'n8n-nodes-base.webhook')[0].parameters.path, 'pk-admin');
+  assert.match(node(admin, '业务处理').parameters.jsCode, /internal: true/);
+  assert.doesNotMatch(node(api, '业务处理').parameters.jsCode, /internal: true/);
 });

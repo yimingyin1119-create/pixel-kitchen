@@ -5,13 +5,13 @@ import { NOTIFY_ID } from './notify.mjs';
 
 export const API_ID = 'pkApi00000000001';
 
-const HANDLE = (tz) => `
+export const HANDLE = (tz, internal = false) => `
 const req = $('收到请求').first().json.body ?? {};
 const tables = {};
 for (const t of Object.keys(PK.TABLES)) tables[t] = $('读取 ' + t).all().map((i) => i.json);
 const ctx = {
   now: new Date().toISOString(), rand: $('生成随机数').first().json.rand, tz: '${tz}', seq: 0,
-  token: String(req.token ?? ''),
+  token: String(req.token ?? ''),${internal ? ' internal: true,' : ''}
 };
 const r = PK.handle(String(req.action ?? ''), PK.stateFromTables(tables), req.payload ?? {}, ctx);
 const writes = {};
@@ -19,7 +19,7 @@ for (const [t, rows] of Object.entries(r.writes)) writes[t] = rows.map((row) => 
 return [{ json: { status: r.status, body: r.body, writes, events: r.events } }];
 `;
 
-const PICK = (t) => `return ($('业务处理').first().json.writes['${t}'] ?? []).map((json) => ({ json }));`;
+export const PICK = (t) => `return ($('业务处理').first().json.writes['${t}'] ?? []).map((json) => ({ json }));`;
 const EVENTS = `return ($('业务处理').first().json.events ?? []).map((json) => ({ json }));`;
 
 export default function api({ core, cfg }) {
@@ -56,5 +56,5 @@ export default function api({ core, cfg }) {
     ['拆出通知', '交给通知中心'],
     ['业务处理', '回复网页'],
   );
-  return workflow({ id: API_ID, name: '搭伙小灶 · 点餐接口', nodes, connections, cfg, webhook: true });
+  return workflow({ id: API_ID, name: '搭伙小灶 · 点餐接口', nodes, connections, cfg, secret: true });
 }

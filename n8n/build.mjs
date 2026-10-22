@@ -9,9 +9,10 @@ import notify from './workflows/notify.mjs';
 import setup from './workflows/setup.mjs';
 import reset from './workflows/reset.mjs';
 import seed from './workflows/seed.mjs';
+import admin from './workflows/admin.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const WORKFLOWS = [auth, api, notify, setup, reset, seed];
+const WORKFLOWS = [auth, api, notify, setup, reset, seed, admin];
 
 async function coreBundle() {
   const out = await build({

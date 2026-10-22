@@ -132,12 +132,15 @@ export function connect(...links) {
   return out;
 }
 
-export function workflow({ id, name, nodes, connections, cfg, webhook }) {
+// No workflow keeps successful runs (they would hold tokens, pin hashes and photos);
+// `secret` workflows, which read sessions, keep no failed runs either.
+export function workflow({ id, name, nodes, connections, cfg, secret = false }) {
   return {
     id, name, nodes, connections, active: false, pinData: {},
     settings: {
       executionOrder: 'v1', timezone: cfg.timezone, saveManualExecutions: false, callerPolicy: 'workflowsFromSameOwner',
-      ...(webhook ? { saveDataSuccessExecution: 'none' } : {}),
+      saveDataSuccessExecution: 'none',
+      ...(secret ? { saveDataErrorExecution: 'none' } : {}),
     },
     versionId: sha256Hex(JSON.stringify(nodes)).replace(/^(.{8})(.{4})(.{4})(.{4})(.{12}).*/, '$1-$2-$3-$4-$5'),
   };

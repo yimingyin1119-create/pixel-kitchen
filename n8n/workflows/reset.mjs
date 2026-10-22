@@ -18,5 +18,5 @@ export default function reset({ core, cfg }) {
     ...tables.slice(1).map((t, i) => [`删表 ${tables[i]}`, `删表 ${t}`]),
     [`删表 ${tables.at(-1)}`, '删好了'],
   );
-  return workflow({ id: RESET_ID, name: '搭伙小灶 · 重置数据', nodes, connections, cfg, webhook: true });
+  return workflow({ id: RESET_ID, name: '搭伙小灶 · 重置数据', nodes, connections, cfg });
 }

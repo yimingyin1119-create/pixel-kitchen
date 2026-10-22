@@ -1,14 +1,12 @@
 import { TABS } from '../copy.js';
 
-export const DINER_TABS = ['order', 'recipes', 'me'];
-export const CHEF_TABS = ['order', 'recipes', 'shopping', 'inventory', 'me'];
+export const TAB_IDS = ['today', 'recipes', 'shopping', 'stock', 'me'];
 
-export function TabBar({ role, current, onSelect }) {
-  const tabs = role === 'chef' ? CHEF_TABS : DINER_TABS;
+export function TabBar({ current, onSelect }) {
   return (
     <nav class="tabbar">
       <div class="tabbar-inner" role="tablist">
-        {tabs.map((t) => (
+        {TAB_IDS.map((t) => (
           <button key={t} type="button" role="tab" aria-selected={current === t} onClick={() => onSelect(t)}>{TABS[t]}</button>
         ))}
       </div>

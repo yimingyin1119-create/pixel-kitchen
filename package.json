@@ -8,7 +8,8 @@
   "scripts": {
     "test": "node --test \"core/**/*.test.js\" \"n8n/*.test.js\"",
     "build:n8n": "node n8n/build.mjs",
-    "test:e2e": "scripts/server.sh e2e"
+    "test:e2e": "scripts/server.sh e2e",
+    "test:web": "npm --prefix web test"
   },
   "devDependencies": {
     "esbuild": "0.28.2"

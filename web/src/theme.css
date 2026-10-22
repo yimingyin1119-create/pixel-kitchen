@@ -1,0 +1,102 @@
+/* Direction A · 暖木农舍 — values fixed by the design spec. */
+@font-face {
+  font-family: 'Fusion Pixel';
+  src: url('/pixel-kitchen/fonts/fusion-pixel-12px.woff2') format('woff2');
+  font-display: swap;
+}
+
+:root {
+  --cream: #f6e7c8;
+  --ink-wood: #6b3f1d;
+  --wood: #a0683a;
+  --wood-dark: #8b5a2b;
+  --tomato: #c8423a;
+  --milk: #fff6e6;
+  --paper: #fffaf0;
+  --gold: #f2b33d;
+  --leaf: #5c8a3a;
+  --text: #4a2f1a;
+  --miss-bg: #e9d3a8;
+  --miss-text: #8a3a2a;
+  --px: 3px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--cream);
+  color: var(--text);
+  font-family: 'Fusion Pixel', 'PingFang SC', 'Hiragino Sans GB', monospace;
+  font-size: 15px;
+  line-height: 1.4;
+  -webkit-font-smoothing: none;
+}
+
+button, input, textarea, select { font: inherit; color: inherit; }
+
+#app { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 72px; }
+
+/* 3px notched pixel frame */
+.px-box {
+  background: var(--paper);
+  margin: var(--px);
+  box-shadow: 0 calc(-1 * var(--px)) 0 0 var(--ink-wood), 0 var(--px) 0 0 var(--ink-wood),
+    calc(-1 * var(--px)) 0 0 0 var(--ink-wood), var(--px) 0 0 0 var(--ink-wood);
+}
+
+.px-btn {
+  border: 0;
+  background: var(--tomato);
+  color: var(--milk);
+  padding: 6px 12px;
+  margin: var(--px);
+  cursor: pointer;
+  box-shadow: 0 calc(-1 * var(--px)) 0 0 var(--ink-wood), 0 var(--px) 0 0 var(--ink-wood),
+    calc(-1 * var(--px)) 0 0 0 var(--ink-wood), var(--px) 0 0 0 var(--ink-wood);
+}
+.px-btn:active { transform: translateY(2px); }
+.px-btn.secondary { background: var(--milk); color: var(--text); }
+.px-btn.green { background: var(--leaf); }
+.px-btn:disabled { opacity: 0.5; }
+
+.px-input {
+  width: 100%;
+  border: 0;
+  background: var(--milk);
+  padding: 8px 10px;
+  margin: var(--px);
+  box-shadow: inset 0 0 0 var(--px) var(--ink-wood);
+}
+
+.awning { height: 14px; background: repeating-linear-gradient(90deg, #c8423a 0 14px, #fff6e6 14px 28px); border-bottom: 3px solid var(--ink-wood); }
+.title-bar { background: var(--wood); color: var(--milk); padding: 10px 16px 8px; border-bottom: 3px solid var(--ink-wood); }
+.title-bar h1 { margin: 0; font-size: 20px; font-weight: normal; }
+.title-bar small { font-size: 12px; }
+
+.page { padding: 12px 13px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.muted { font-size: 12px; opacity: 0.8; }
+.center { text-align: center; }
+.error { color: var(--tomato); font-size: 13px; margin: 6px 4px; }
+
+.tag { display: inline-block; font-size: 11px; padding: 1px 5px; margin: 2px 4px 0 0; }
+.tag.hot { background: var(--gold); }
+.tag.miss { background: var(--miss-bg); color: var(--miss-text); }
+
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; height: 56px;
+  display: flex; justify-content: center;
+  background: var(--wood-dark); border-top: 3px solid var(--ink-wood);
+}
+.tabbar-inner { display: flex; width: 100%; max-width: 480px; justify-content: space-around; align-items: center; }
+.tabbar button { background: none; border: 0; color: var(--milk); padding: 8px 6px; font-size: 13px; cursor: pointer; }
+.tabbar button[aria-selected='true'] { color: var(--gold); }
+
+.pinpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 260px; margin: 10px auto; }
+.pinpad button { font-size: 20px; padding: 10px 0; }
+.pin-dots { display: flex; justify-content: center; gap: 10px; margin: 12px 0; }
+.pin-dots span { width: 14px; height: 14px; background: var(--milk); box-shadow: inset 0 0 0 3px var(--ink-wood); }
+.pin-dots span.on { background: var(--tomato); }
+
+.sprite svg { display: block; }

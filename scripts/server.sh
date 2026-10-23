@@ -109,8 +109,10 @@ case "${1:-}" in
     ;;
   set-push)
     load_env
-    printf '粘贴做过实名认证的 PushPlus 用户 token（输入时不显示）：'; read -rs tok; echo
+    printf '粘贴做过实名认证的 PushPlus 用户 token（输入时不显示，粘贴一次后直接按回车）：'; read -rs tok; echo
+    tok=$(printf '%s' "$tok" | tr -d '[:space:]')
     [ -n "$tok" ] || { echo "没有输入 token"; exit 1; }
+    printf '%s' "$tok" | grep -qE '^[0-9a-zA-Z]{32}$' || { echo "token 应该是 32 位字母和数字，这次是 ${#tok} 位，可能粘贴了多次。什么都没改，再运行一次吧。"; exit 1; }
     tmp=$(mktemp); grep -v '^PK_PUSH_SENDER=' "$ENV_FILE" > "$tmp"; printf 'PK_PUSH_SENDER=%s\n' "$tok" >> "$tmp"; mv "$tmp" "$ENV_FILE"
     rsync -a "$ENV_FILE" "$TARGET:$REMOTE_DIR/.env"
     remote "cd $REMOTE_DIR && sudo docker compose up -d n8n >/dev/null"

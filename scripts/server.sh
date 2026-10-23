@@ -36,6 +36,8 @@ wait_and_setup() {
   remote "for i in \$(seq 1 60); do curl -fs $url/healthz >/dev/null && break; sleep 2; done
     for i in \$(seq 1 30); do code=\$(curl -s -o /dev/null -w '%{http_code}' -X POST $url/webhook/pk-setup); [ \"\$code\" = 200 ] && exit 0; sleep 2; done
     echo 'table setup failed'; exit 1"
+  # Freshly published workflows can take a moment to replace the old in-memory versions.
+  sleep 8
   remote "curl -fs -X POST $url/webhook/pk-seed"; echo
 }
 

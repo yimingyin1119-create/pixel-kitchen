@@ -6,6 +6,7 @@
 }
 
 :root {
+  color-scheme: only light;
   --cream: #f6e7c8;
   --ink-wood: #6b3f1d;
   --wood: #a0683a;

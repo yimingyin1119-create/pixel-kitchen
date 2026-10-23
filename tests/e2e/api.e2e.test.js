@@ -40,7 +40,7 @@ test('register two members and see preset recipes', async () => {
   await n8n.api('me.update', { pushToken: 'tok-a' }, t.a);
   await n8n.api('me.update', { pushToken: 'tok-b' }, t.b);
   const v = (await n8n.api('state.get', {}, t.a)).body.data;
-  assert.equal(v.recipes.length, 12);
+  assert.equal(v.recipes.length, 30);
   t.pork = v.recipes.find((r) => r.name === '红烧肉').uid;
 });
 

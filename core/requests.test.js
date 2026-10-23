@@ -254,3 +254,27 @@ test('shortage tag clears once the stock is bought', () => {
   r = call(r.state, 'shopping.check', { uid: shop.uid, boughtQty: 600, unit: 'g' }, k.b.token);
   assert.deepEqual(r.body.data.requests[0].shortages, []);
 });
+
+const FISH = recipe('r_fish', '红烧鱼', [
+  { name: '鱼', qty: null, unit: '', kind: 'main', inventoryUid: null },
+  { name: '姜', qty: null, unit: '适量', kind: 'seasoning', inventoryUid: null },
+]);
+
+test('a main ingredient written without an amount counts as missing', () => {
+  const k = kitchen();
+  const s = { ...k.s, recipes: [...k.s.recipes, FISH] };
+  const v = call(s, 'state.get', {}, k.a.token).body.data;
+  assert.deepEqual(v.availability.r_fish, { makeable: false, missing: ['鱼'] });
+  const r = call(s, 'requests.create', { items: ['r_fish'], servings: 2, ...when }, k.a.token);
+  assert.ok(r.state.shopping.some((x) => x.name === '鱼'));
+});
+
+test('an older "鱼 适量" saved as seasoning still counts as missing; real pantry items do not', () => {
+  const k = kitchen();
+  const legacy = recipe('r_old', '红烧鱼', [
+    { name: '鱼', qty: null, unit: '适量', kind: 'seasoning', inventoryUid: null },
+    { name: '生抽', qty: null, unit: '适量', kind: 'seasoning', inventoryUid: null },
+  ]);
+  const v = call({ ...k.s, recipes: [legacy] }, 'state.get', {}, k.a.token).body.data;
+  assert.deepEqual(v.availability.r_old.missing, ['鱼']);
+});

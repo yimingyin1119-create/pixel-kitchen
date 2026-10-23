@@ -6,6 +6,7 @@ import { matchIngredient } from './recipes.js';
 import { available, lowStockCheck, resolveNeed } from './stock.js';
 import { addShoppingReason, removeOrderReason } from './shopping.js';
 import { extendView } from './view.js';
+import { isPantry } from './pantry.js';
 
 const MEALS = ['lunch', 'dinner', 'late'];
 
@@ -49,8 +50,8 @@ export function computeShortages(needs, state, orderUid) {
     const item = n.inventoryUid && state.inventory.find((i) => i.uid === n.inventoryUid);
     if (n.unitMismatch) { out.push({ name: n.name, inventoryUid: n.inventoryUid, qty: null, unit: n.unit, reason: 'unitMismatch' }); continue; }
     if (!item) {
-      // Untracked seasonings "to taste" are assumed to be in the cupboard.
-      if (n.qty !== null) out.push({ name: n.name, inventoryUid: null, qty: n.qty, unit: n.unit, reason: 'missing' });
+      // Untracked everyday seasonings "to taste" are assumed to be in the cupboard; anything else is missing.
+      if (n.qty !== null || !isPantry(n)) out.push({ name: n.name, inventoryUid: null, qty: n.qty, unit: n.unit, reason: 'missing' });
       continue;
     }
     if (item.kind === 'seasoning') {

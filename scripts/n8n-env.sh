@@ -10,3 +10,5 @@ export N8N_DIAGNOSTICS_ENABLED=false
 export N8N_PERSONALIZATION_ENABLED=false
 export N8N_SECURE_COOKIE=false
 export N8N_BIN="$REPO/n8n/runtime/node_modules/.bin/n8n"
+export N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+export PK_PUSH_SENDER="${PK_PUSH_SENDER:-tok-sender}"

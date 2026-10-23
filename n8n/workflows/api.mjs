@@ -1,7 +1,7 @@
 import { builders, connect, workflow } from '../lib/nodes.mjs';
 import { TABLES } from '../../core/schema.js';
 import { AUTH_ID } from './auth.mjs';
-import { NOTIFY_ID } from './notify.mjs';
+import { NOTIFY_ID, PUSH_BODY, MESSAGES } from './notify.mjs';
 
 export const API_ID = 'pkApi00000000001';
 
@@ -20,7 +20,22 @@ return [{ json: { status: r.status, body: r.body, writes, events: r.events } }];
 `;
 
 export const PICK = (t) => `return ($('业务处理').first().json.writes['${t}'] ?? []).map((json) => ({ json }));`;
-const EVENTS = `return ($('业务处理').first().json.events ?? []).map((json) => ({ json }));`;
+// The test push is sent inline (below) so the page can show PushPlus's real answer.
+const EVENTS = `return ($('业务处理').first().json.events ?? []).filter((e) => e.type !== 'push.test').map((json) => ({ json }));`;
+const TEST_PUSH = (title, content) => `
+const ev = $('业务处理').first().json.events.find((e) => e.type === 'push.test');
+return [{ json: { to: ev.to, title: ${JSON.stringify(title)}, content: ${JSON.stringify(content)} } }];
+`;
+const PUSH_REPLY = `
+const r = $input.first().json;
+return [{ json: PK.pushResult(r && r.code !== undefined ? r : null) }];
+`;
+
+// Title and content of the test push, taken from the notify workflow's copy so both stay identical.
+function testCopy() {
+  const [, , title, content] = MESSAGES.find(([type]) => type === 'push.test');
+  return [title.replace(/^=/, ''), content.replace(/^=/, '')];
+}
 
 export default function api({ core, cfg }) {
   const B = builders({ workflowId: API_ID, core, cfg });
@@ -39,7 +54,12 @@ export default function api({ core, cfg }) {
     ...tables.flatMap((t, i) => [B.code(`挑出 ${t} 的改动`, PICK(t), [13, 1.6 + i]), B.dtUpsert(t, [14, 1.6 + i])]),
     B.code('拆出通知', EVENTS, [13, 1.6 + tables.length]),
     B.execWorkflow('交给通知中心', NOTIFY_ID, { wait: false }, [14, 1.6 + tables.length]),
-    B.respond('回复网页', { fromNode: '业务处理' }, [13, 2.8 + tables.length]),
+    B.ifTrue('是测试推送？', "={{ ($('业务处理').first().json.events ?? []).some((e) => e.type === 'push.test') }}", [13, 2.8 + tables.length]),
+    B.code('拼测试推送', TEST_PUSH(...testCopy()), [14, 2.8 + tables.length]),
+    B.httpPostJson('试发一条', cfg.pushplusUrl, PUSH_BODY, [15, 2.8 + tables.length], { continueOnError: true }),
+    B.code('看推送结果', PUSH_REPLY, [16, 2.8 + tables.length], { withCore: true }),
+    B.respond('回复：推送结果', {}, [17, 2.8 + tables.length]),
+    B.respond('回复网页', { fromNode: '业务处理' }, [14, 4 + tables.length]),
   ];
   const connections = connect(
     ['收到请求', '生成随机数'],
@@ -54,7 +74,12 @@ export default function api({ core, cfg }) {
     ...tables.flatMap((t) => [['业务处理', `挑出 ${t} 的改动`], [`挑出 ${t} 的改动`, `写入 ${t}`]]),
     ['业务处理', '拆出通知'],
     ['拆出通知', '交给通知中心'],
-    ['业务处理', '回复网页'],
+    ['业务处理', '是测试推送？'],
+    ['是测试推送？', '拼测试推送', 0],
+    ['是测试推送？', '回复网页', 1],
+    ['拼测试推送', '试发一条'],
+    ['试发一条', '看推送结果'],
+    ['看推送结果', '回复：推送结果'],
   );
   return workflow({ id: API_ID, name: '搭伙小灶 · 点餐接口', nodes, connections, cfg, secret: true });
 }

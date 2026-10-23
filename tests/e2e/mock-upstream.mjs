@@ -9,7 +9,10 @@ export function startMockUpstream(port = 5690, host = process.env.MOCK_HOST ?? '
     req.on('end', () => {
       const send = (code, obj) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(obj)); };
       if (req.method === 'POST' && req.url === '/pushplus/send') {
-        pushes.push(JSON.parse(body || '{}'));
+        const msg = JSON.parse(body || '{}');
+        // A friend token PushPlus does not know: HTTP 200 with an error code in the body, like the real service.
+        if (msg.to === 'bad-friend') return send(200, { code: 999, msg: '好友令牌不存在', data: null });
+        pushes.push(msg);
         return send(200, { code: 200, msg: '请求成功', data: `mock-${pushes.length}` });
       }
       if (req.method === 'GET' && req.url === '/pushplus/log') return send(200, pushes);

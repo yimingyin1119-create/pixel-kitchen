@@ -5,6 +5,8 @@ import { Header } from '../ui/Header.jsx';
 import { PixelBox, Button } from '../ui/PixelBox.jsx';
 import { Sprite } from '../ui/Sprite.jsx';
 
+// One member with a real-name-verified PushPlus account sends every push; everyone else is that account's
+// PushPlus friend and saves their 好友令牌 here (the sender saves their own user token).
 function PushSetup() {
   const { me, act } = useApp();
   const [token, setToken] = useState('');
@@ -15,18 +17,26 @@ function PushSetup() {
     if (await act('me.update', { pushToken: token.trim() })) setMsg('保存好了，点「发一条试试」看看');
   });
   const tryIt = () => testRun(async () => {
-    if (await act('me.testPush', {})) setMsg('发出去了，看看微信');
+    const data = await act('me.testPush', {});
+    if (data) setMsg(data.message);
   });
   return (
     <PixelBox class="page">
       <div>微信推送 · {me.hasPush ? '已设置' : '还没设置'}</div>
+      <p class="muted">推送统一由一位做过 PushPlus 实名认证的成员代发，其他人只要成为 TA 的 PushPlus 好友，不用实名。</p>
+      <div class="muted"><b>负责代发的那位</b></div>
       <ol class="muted" style={{ paddingLeft: '18px' }}>
-        <li>微信搜索并关注公众号「pushplus 推送加」</li>
-        <li>在公众号菜单里找到「功能 → 个人中心 → 一对一推送」，复制你的 token</li>
-        <li>粘贴到下面，点保存，再点「发一条试试」</li>
+        <li>在公众号「pushplus 推送加」的「个人中心 → 个人资料」里完成实名认证（PushPlus 会收一次认证费）</li>
+        <li>把自己的用户 token 填到下面，并让管服务器的人运行一次 <code>scripts/server.sh set-push</code></li>
+        <li>打开 <a href="https://www.pushplus.plus/liaison.html" target="_blank" rel="noopener noreferrer">PushPlus「好友消息」页</a>，把好友二维码发给其他人</li>
       </ol>
-      <label class="field">PushPlus token
-        <input class="px-input" value={token} onInput={(e) => setToken(e.currentTarget.value)} placeholder="一串字母和数字" />
+      <div class="muted"><b>其他人</b></div>
+      <ol class="muted" style={{ paddingLeft: '18px' }}>
+        <li>微信关注公众号「pushplus 推送加」，再扫代发人发来的好友二维码</li>
+        <li>请代发人在「好友消息」页的好友列表里，把你的好友令牌发给你，填到下面</li>
+      </ol>
+      <label class="field">PushPlus token / 好友令牌
+        <input class="px-input" aria-label="PushPlus token" value={token} onInput={(e) => setToken(e.currentTarget.value)} placeholder="32 位字母和数字" />
       </label>
       <div class="row">
         <Button disabled={saving} onClick={save}>{saving ? '保存中…' : '保存 token'}</Button>

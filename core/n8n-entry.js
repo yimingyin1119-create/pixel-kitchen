@@ -2,6 +2,7 @@
 // which breaks esbuild's export getters, so the API is handed over as a plain object instead.
 import { handle, applyWrites, authenticate, TABLES, STATE_KEYS, serialize, deserialize, stateFromTables } from './index.js';
 import { seedRows } from './seed.js';
+import { pushResult } from './push.js';
 
 // eslint-disable-next-line no-undef
-PK_SINK({ handle, applyWrites, authenticate, TABLES, STATE_KEYS, serialize, deserialize, stateFromTables, seedRows });
+PK_SINK({ handle, applyWrites, authenticate, TABLES, STATE_KEYS, serialize, deserialize, stateFromTables, seedRows, pushResult });

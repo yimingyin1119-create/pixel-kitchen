@@ -6,6 +6,7 @@
 #   server.sh e2e         run the end-to-end tests on the server against a throwaway n8n
 #   server.sh reset       back up, then wipe all app data and write the preset recipes (asks you to type RESET)
 #   server.sh reset-pin   give a member who forgot their pin a new one (typed here, not shown)
+#   server.sh set-push    set the real-name-verified PushPlus token that sends every push (typed here, not shown)
 #   server.sh set-key     store the Anthropic API key as an n8n credential
 #   server.sh editor      open the n8n editor at http://localhost:5678 through an SSH tunnel
 #   server.sh logs        follow n8n logs
@@ -105,6 +106,15 @@ case "${1:-}" in
     printf '新的 4 位口令（输入时不显示）：'; read -rs pin; echo
     body=$(WHO="$who" PIN="$pin" node -e 'process.stdout.write(JSON.stringify({action:"admin.resetPin",payload:{name:process.env.WHO,pin:process.env.PIN}}))')
     printf '%s' "$body" | remote "curl -s -X POST -H 'content-type: application/json' --data-binary @- http://127.0.0.1:5678/webhook/pk-admin"; echo
+    ;;
+  set-push)
+    load_env
+    printf '粘贴做过实名认证的 PushPlus 用户 token（输入时不显示）：'; read -rs tok; echo
+    [ -n "$tok" ] || { echo "没有输入 token"; exit 1; }
+    tmp=$(mktemp); grep -v '^PK_PUSH_SENDER=' "$ENV_FILE" > "$tmp"; printf 'PK_PUSH_SENDER=%s\n' "$tok" >> "$tmp"; mv "$tmp" "$ENV_FILE"
+    rsync -a "$ENV_FILE" "$TARGET:$REMOTE_DIR/.env"
+    remote "cd $REMOTE_DIR && sudo docker compose up -d n8n >/dev/null"
+    echo "已设置代发账号。现在在网页「我的」里点「发一条试试」。"
     ;;
   set-key)
     load_env

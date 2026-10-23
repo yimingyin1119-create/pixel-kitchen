@@ -23,16 +23,20 @@ test('api writes every table', () => {
   assert.deepEqual(upserts, Object.keys(TABLES).sort());
 });
 
-test('respond is bottom-most branch', () => {
+test('the reply branch is bottom-most, after every write', () => {
   const targets = (api.connections['业务处理']?.main ?? []).flat().map((c) => node(api, c.node));
-  const respond = targets.find((n) => n.type === 'n8n-nodes-base.respondToWebhook');
-  assert.ok(respond, 'respond hangs off 业务处理');
-  for (const n of targets) if (n !== respond) assert.ok(n.position[1] < respond.position[1], n.name);
+  const last = node(api, '是测试推送？');
+  assert.ok(targets.includes(last), 'the test-push switch hangs off 业务处理');
+  for (const n of targets) if (n !== last) assert.ok(n.position[1] < last.position[1], n.name);
+  const [yes, no] = api.connections['是测试推送？'].main;
+  assert.equal(yes[0].node, '拼测试推送');
+  assert.equal(api.connections['拼测试推送'].main[0][0].node, '试发一条');
+  assert.equal(no[0].node, '回复网页');
 });
 
 test('core inlined only where needed', () => {
   const withCore = workflows.flatMap((w) => w.nodes.filter((n) => n.parameters?.jsCode?.includes('var PK')).map((n) => n.name));
-  assert.deepEqual(withCore.sort(), ['业务处理', '业务处理', '准备预设', '核对会话'].sort());
+  assert.deepEqual(withCore.sort(), ['业务处理', '业务处理', '准备预设', '核对会话', '看推送结果'].sort());
 });
 
 test('core works inside the n8n sandbox, where Object.defineProperty is a no-op', () => {
@@ -128,4 +132,19 @@ test('admin endpoint is internal and the only one that sets ctx.internal', () =>
   assert.equal(nodes(admin, 'n8n-nodes-base.webhook')[0].parameters.path, 'pk-admin');
   assert.match(node(admin, '业务处理').parameters.jsCode, /internal: true/);
   assert.doesNotMatch(node(api, '业务处理').parameters.jsCode, /internal: true/);
+});
+
+test('pushes go out from the sender account, addressed to each member', () => {
+  const http = nodes(byId.pkNotify00000001, 'n8n-nodes-base.httpRequest')[0];
+  assert.match(http.parameters.jsonBody, /\$env\.PK_PUSH_SENDER/);
+  assert.match(http.parameters.jsonBody, /to: \$json\.to/);
+});
+
+test('the test push waits for PushPlus and reports what it said', () => {
+  const tryIt = node(api, '试发一条');
+  assert.equal(tryIt.parameters.url, 'http://127.0.0.1:5690/pushplus/send');
+  assert.equal(tryIt.onError, 'continueRegularOutput');
+  assert.match(node(api, '看推送结果').parameters.jsCode, /PK\.pushResult/);
+  assert.equal(api.connections['看推送结果'].main[0][0].node, '回复：推送结果');
+  assert.match(node(api, '拆出通知').parameters.jsCode, /push\.test/);
 });

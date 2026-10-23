@@ -21,7 +21,7 @@ const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Singapore' }).f
 
 async function pushTo(token, includes) {
   for (let i = 0; i < 24; i++) {
-    const p = mock.pushes.find((x) => x.token === token && `${x.title}${x.content}`.includes(includes));
+    const p = mock.pushes.find((x) => (x.to ?? x.token) === token && `${x.title}${x.content}`.includes(includes));
     if (p) return p;
     await new Promise((r) => setTimeout(r, 250));
   }
@@ -112,4 +112,20 @@ test('members cannot reset pins, the server-local admin endpoint can', async () 
   assert.equal(r.status, 200);
   assert.equal((await n8n.api('state.get', {}, t.b)).status, 401);
   assert.equal((await n8n.api('auth.login', { name: '小红', pin: '9999' })).status, 200);
+});
+
+test('pushes are sent by the sender account, addressed to the member', async () => {
+  const p = mock.pushes.find((x) => x.to === 'tok-b');
+  assert.equal(p.token, 'tok-sender');
+});
+
+test('test push reports what PushPlus really said', async () => {
+  assert.equal((await n8n.api('me.update', { pushToken: 'tok-a' }, t.a)).status, 200);
+  const ok = await n8n.api('me.testPush', {}, t.a);
+  assert.equal(ok.status, 200, JSON.stringify(ok.body));
+  assert.match(ok.body.data.message, /发出去了/);
+  await n8n.api('me.update', { pushToken: 'bad-friend' }, t.a);
+  const bad = await n8n.api('me.testPush', {}, t.a);
+  assert.equal(bad.status, 502);
+  assert.match(bad.body.error.message, /好友令牌不存在/);
 });

@@ -50,3 +50,24 @@ test('meal history is one tap away', () => {
   fireEvent.click(screen.getByRole('button', { name: '吃饭记录' }));
   expect(window.location.hash).toBe('#/history');
 });
+
+test('test push shows what PushPlus answered', async () => {
+  renderWithApp(<Me />, { view: view(), act: vi.fn().mockResolvedValue({ message: '发出去了，看看微信' }) });
+  fireEvent.click(screen.getByRole('button', { name: '发一条试试' }));
+  expect(await screen.findByText('发出去了，看看微信')).toBeTruthy();
+});
+
+test('test push failure shows the reason', async () => {
+  const { ApiError } = await import('../api.js');
+  const act = vi.fn().mockRejectedValue(new ApiError('UPSTREAM', '代发推送的账号还没在 PushPlus 做实名认证', 502));
+  renderWithApp(<Me />, { view: view(), act });
+  fireEvent.click(screen.getByRole('button', { name: '发一条试试' }));
+  expect(await screen.findByText(/还没在 PushPlus 做实名认证/)).toBeTruthy();
+});
+
+test('the guide explains the one-sender setup', () => {
+  renderWithApp(<Me />, { view: view() });
+  expect(screen.getAllByText(/好友二维码/).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/好友令牌/).length).toBeGreaterThan(0);
+  expect(screen.getByRole('link', { name: /好友消息/ }).getAttribute('href')).toBe('https://www.pushplus.plus/liaison.html');
+});

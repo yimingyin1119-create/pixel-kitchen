@@ -5,6 +5,12 @@ export const NOTIFY_ID = 'pkNotify00000001';
 const MEAL = "({ lunch: '午饭', dinner: '晚饭', late: '夜宵' })[$json.meal]";
 const DISHES = "$json.dishes.join('、')";
 
+// One verified PushPlus account (PK_PUSH_SENDER on the server) sends everything; each member's saved token is
+// their 好友令牌, passed as `to`. Without a sender configured, each member's own token sends to themself.
+export const PUSH_BODY = "={{ $env.PK_PUSH_SENDER && $json.to !== $env.PK_PUSH_SENDER"
+  + " ? { token: $env.PK_PUSH_SENDER, to: $json.to, title: $json.title, content: $json.content, template: 'txt' }"
+  + " : { token: $json.to, title: $json.title, content: $json.content, template: 'txt' } }}";
+
 const DATE = "{{ Number($json.wantedDate.slice(5, 7)) }}月{{ Number($json.wantedDate.slice(8, 10)) }}日";
 
 // [event type, branch label, title expression, content expression]
@@ -26,8 +32,7 @@ export default function notify({ core, cfg }) {
     B.execTrigger('收到事件', [0, 2]),
     B.switchOn('事件类型', '={{ $json.type }}', MESSAGES.map(([type, label]) => [type, label]), [1, 2]),
     ...MESSAGES.map(([, label, title, content], i) => B.setFields(`拼消息：${label}`, { to: '={{ $json.to }}', title, content }, [2, i * 0.8])),
-    B.httpPostJson('发到微信', cfg.pushplusUrl,
-      "={{ { token: $json.to, title: $json.title, content: $json.content, template: 'txt' } }}", [3, 2], { continueOnError: true }),
+    B.httpPostJson('发到微信', cfg.pushplusUrl, PUSH_BODY, [3, 2], { continueOnError: true }),
   ];
   const connections = connect(
     ['收到事件', '事件类型'],

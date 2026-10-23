@@ -10,6 +10,7 @@ import { Today } from './pages/Today.jsx';
 import { Recipes } from './pages/Recipes.jsx';
 import { Shopping } from './pages/Shopping.jsx';
 import { Stock } from './pages/Stock.jsx';
+import { History } from './pages/History.jsx';
 
 const TOKEN_KEY = 'pk.token';
 const cacheKey = (token) => `pk.view.${token.slice(0, 8)}`;
@@ -18,9 +19,11 @@ function readCache(token) {
   try { return JSON.parse(storage.get(cacheKey(token))); } catch { return null; }
 }
 
+const ROUTES = [...TAB_IDS, 'history'];
+
 function tabFromHash() {
   const t = window.location.hash.replace(/^#\/?/, '').split('/')[0];
-  return TAB_IDS.includes(t) ? t : 'today';
+  return ROUTES.includes(t) ? t : 'today';
 }
 
 // Holds the session, the last server view (cached per account) and the act() used by every page.
@@ -148,6 +151,7 @@ const PAGES = {
   shopping: () => <Shopping />,
   stock: () => <Stock />,
   me: () => <Me />,
+  history: () => <History />,
 };
 
 function Shell() {
@@ -174,7 +178,7 @@ function Shell() {
       {app.syncing && <div class="sync-badge" role="status">同步中</div>}
       {app.offline && <div class="offline-banner" role="alert">连不上服务器，显示的是上次的内容</div>}
       <Page />
-      <TabBar current={tab} onSelect={select} />
+      <TabBar current={tab === 'history' ? 'me' : tab} onSelect={select} />
     </div>
   );
 }

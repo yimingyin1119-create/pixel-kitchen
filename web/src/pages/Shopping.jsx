@@ -5,6 +5,7 @@ import { Header } from '../ui/Header.jsx';
 import { PixelBox, Button } from '../ui/PixelBox.jsx';
 import { Sheet } from '../ui/Sheet.jsx';
 import { Toast } from '../ui/Toast.jsx';
+import { Sprite } from '../ui/Sprite.jsx';
 import { MEALS } from '../copy.js';
 import { today, addDays, dateLabel } from '../lib/time.js';
 
@@ -116,18 +117,18 @@ export function Shopping() {
 
   return (
     <div>
-      <Header title="采购清单" subtitle={`还要买 ${toBuy.length} 样`} />
+      <Header title="采购清单" subtitle={`还要买 ${toBuy.length} 样`} icon="cart" />
       <Toast text={toast} onDone={() => setToast('')} />
       <div class="page">
-        <Button class="big-btn" onClick={() => setSheet({ type: 'add' })}>＋ 手动加</Button>
+        <Button class="big-btn icon-btn" onClick={() => setSheet({ type: 'add' })}><Sprite name="cart" scale={2} tint="#fff6e6" />手动加</Button>
         <section data-testid="to-buy">
-          <div class="section-title">要买</div>
-          {toBuy.length === 0 && <p class="muted">都买齐了</p>}
+          <div class="section-title"><Sprite name="cart" scale={2} />要买</div>
+          {toBuy.length === 0 && <div class="center" style={{ padding: '16px 0' }}><Sprite name="basket" scale={4} /><p class="muted">都买齐了</p></div>}
           {toBuy.map((s) => <ToBuyRow key={s.uid} item={s} onCheck={(item) => setSheet({ type: 'check', item })} />)}
         </section>
         {bought.length > 0 && (
           <section data-testid="bought">
-            <div class="section-title">已买（点撤销可以退回）</div>
+            <div class="section-title"><Sprite name="basket" scale={2} />已买（点撤销可以退回）</div>
             {bought.map((s) => <BoughtRow key={s.uid} item={s} />)}
           </section>
         )}

@@ -6,6 +6,7 @@ import { PixelBox, Button } from '../ui/PixelBox.jsx';
 import { Sprite } from '../ui/Sprite.jsx';
 import { Toast } from '../ui/Toast.jsx';
 import { RequestSheet } from '../ui/RequestSheet.jsx';
+import { dishIcon } from '../lib/dishIcon.js';
 import { BRAND, MEALS } from '../copy.js';
 import { today, addDays, dateLabel, weekday } from '../lib/time.js';
 
@@ -39,7 +40,7 @@ function RequestCard({ r, kind }) {
   return (
     <PixelBox class={`order-card ${highlight === r.uid ? 'flash' : ''}`}>
       <div class="muted">{whenLabel(r)} · {r.servings} 人 · {nameOf(r.userUid)}提的</div>
-      <div class="dish-name">{r.items.map((i) => i.name).join('、')}</div>
+      <div class="row"><Sprite name={dishIcon(view.recipes.find((x) => x.uid === r.items[0]?.recipeUid) ?? { name: r.items[0]?.name ?? '' })} scale={2} /><span class="dish-name">{r.items.map((i) => i.name).join('、')}</span></div>
       {r.note && <div class="muted">备注：{r.note}</div>}
       {kind === 'others' && <div class="muted">{nameOf(r.takerUid)} 在做</div>}
       {r.shortages?.length > 0 && (
@@ -65,11 +66,11 @@ function RequestCard({ r, kind }) {
   );
 }
 
-function Section({ id, title, list, kind }) {
+function Section({ id, title, list, kind, icon }) {
   if (list.length === 0) return null;
   return (
     <section data-testid={`section-${id}`}>
-      <div class="section-title">{title}</div>
+      <div class="section-title"><Sprite name={icon} scale={2} />{title}</div>
       {list.map((r) => <RequestCard key={r.uid} r={r} kind={kind} />)}
     </section>
   );
@@ -84,7 +85,7 @@ function Reminders() {
   if (expiring.length + low.length === 0) return null;
   return (
     <section>
-      <div class="section-title">提醒</div>
+      <div class="section-title"><Sprite name="clock" scale={2} />提醒</div>
       <PixelBox class="order-card">
         {expiring.map((i) => <div key={`e${i.uid}`}><span class="tag miss">快过期</span> {i.name}（{dateLabel(i.expiresOn)}）</div>)}
         {low.map((i) => <div key={`l${i.uid}`}><span class="tag miss">快用完</span> {i.name}</div>)}
@@ -108,13 +109,13 @@ export function Today() {
 
   return (
     <div>
-      <Header title={BRAND} subtitle={`今天 · ${dateLabel(d)} ${weekday(d)}`} />
+      <Header title={BRAND} subtitle={`今天 · ${dateLabel(d)} ${weekday(d)}`} icon="hat" />
       <Toast text={toast} onDone={() => setToast('')} />
       <div class="page">
-        <Button class="big-btn" onClick={() => setSheet(true)}>＋ 提个要求</Button>
-        <Section id="mine" title="我接的" list={mine} kind="mine" />
-        <Section id="waiting" title="等人接" list={waiting} kind="waiting" />
-        <Section id="others" title="别人在做" list={others} kind="others" />
+        <Button class="big-btn icon-btn" onClick={() => setSheet(true)}><Sprite name="pot" scale={2} tint="#fff6e6" />提个要求</Button>
+        <Section id="mine" title="我接的" list={mine} kind="mine" icon="hat" />
+        <Section id="waiting" title="等人接" list={waiting} kind="waiting" icon="bell" />
+        <Section id="others" title="别人在做" list={others} kind="others" icon="pot" />
         {live.length === 0 && (
           <div class="center" style={{ padding: '24px 0' }}>
             <Sprite name="cat" scale={5} />

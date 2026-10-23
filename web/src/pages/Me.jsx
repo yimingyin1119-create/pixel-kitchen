@@ -3,6 +3,7 @@ import { useApp } from '../store.js';
 import { useAction } from '../lib/useAction.js';
 import { Header } from '../ui/Header.jsx';
 import { PixelBox, Button } from '../ui/PixelBox.jsx';
+import { Sprite } from '../ui/Sprite.jsx';
 
 function PushSetup() {
   const { me, act } = useApp();
@@ -51,8 +52,11 @@ export function Me() {
   const { me, signOut } = useApp();
   return (
     <div>
-      <Header title="我的" subtitle={me.name} />
+      <Header title="我的" subtitle={me.name} icon="hat" />
       <div class="page">
+        <Button class="big-btn icon-btn" variant="secondary" onClick={() => { window.location.hash = '#/history'; }}>
+          <Sprite name="scroll" scale={2} />吃饭记录
+        </Button>
         <PushSetup />
         <Members />
         <Button variant="secondary" onClick={signOut}>退出登录</Button>

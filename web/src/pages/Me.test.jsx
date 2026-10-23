@@ -44,3 +44,9 @@ test('sign out', () => {
   const { getByRole } = renderWithApp(<Me />, { view: view() });
   fireEvent.click(getByRole('button', { name: '退出登录' }));
 });
+
+test('meal history is one tap away', () => {
+  renderWithApp(<Me />, { view: view() });
+  fireEvent.click(screen.getByRole('button', { name: '吃饭记录' }));
+  expect(window.location.hash).toBe('#/history');
+});

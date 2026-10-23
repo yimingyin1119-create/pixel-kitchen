@@ -6,6 +6,7 @@ import { Header } from '../ui/Header.jsx';
 import { PixelBox, Button } from '../ui/PixelBox.jsx';
 import { Sheet } from '../ui/Sheet.jsx';
 import { Toast } from '../ui/Toast.jsx';
+import { Sprite } from '../ui/Sprite.jsx';
 import { today } from '../lib/time.js';
 import { daysUntil } from '../../../core/time.js';
 
@@ -119,11 +120,11 @@ export function Stock() {
 
   return (
     <div>
-      <Header title="食材库" subtitle={`主料 ${mains} · 调料 ${items.length - mains}`} />
+      <Header title="食材库" subtitle={`主料 ${mains} · 调料 ${items.length - mains}`} icon="fridge" />
       <Toast text={toast} onDone={() => setToast('')} />
       <div class="page">
-        <Button class="big-btn" onClick={() => setSheet({ item: null })}>＋ 加食材</Button>
-        {items.length === 0 && <p class="muted center">食材库还是空的。买菜时在「采购」里打勾，会自动进来。</p>}
+        <Button class="big-btn icon-btn" onClick={() => setSheet({ item: null })}><Sprite name="fridge" scale={2} tint="#fff6e6" />加食材</Button>
+        {items.length === 0 && <div class="center" style={{ padding: '20px 0' }}><Sprite name="fridge" scale={5} /><p class="muted">食材库还是空的。买菜时在「采购」里打勾，会自动进来。</p></div>}
         {items.map((i) => <StockRow key={i.uid} item={i} onOpen={(item) => setSheet({ item })} />)}
       </div>
       {sheet && <StockSheet item={sheet.item} onClose={() => setSheet(null)} onDone={done} />}

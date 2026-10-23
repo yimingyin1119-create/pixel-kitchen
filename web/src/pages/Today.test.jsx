@@ -75,7 +75,7 @@ test('request sheet sends structured request with selfCook', async () => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-10-23T11:00:00Z')); // 19:00 in Singapore
   const { act } = renderWithApp(<Today />, { view: todayView([]) });
-  fireEvent.click(screen.getByRole('button', { name: '＋ 提个要求' }));
+  fireEvent.click(screen.getByRole('button', { name: '提个要求' }));
   fireEvent.click(screen.getByRole('checkbox', { name: /红烧肉/ }));
   fireEvent.click(screen.getByRole('button', { name: '加一人' }));
   fireEvent.click(screen.getByRole('button', { name: '明天' }));

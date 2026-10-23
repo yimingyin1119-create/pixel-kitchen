@@ -27,7 +27,7 @@ test('newest stock comes first', () => {
 
 test('new stock item is saved and flashed', async () => {
   const { act } = renderWithApp(<Stock />, { view: view() });
-  fireEvent.click(screen.getByRole('button', { name: '＋ 加食材' }));
+  fireEvent.click(screen.getByRole('button', { name: '加食材' }));
   fireEvent.input(screen.getByLabelText('食材名'), { target: { value: '鸡蛋' } });
   fireEvent.input(screen.getByLabelText('数量'), { target: { value: '6' } });
   fireEvent.input(screen.getByLabelText('单位'), { target: { value: '个' } });
@@ -47,7 +47,7 @@ test('highlighted item flashes', () => {
 test('duplicate opens existing item', async () => {
   const act = vi.fn().mockRejectedValue(new ApiError('CONFLICT', '已经有「五花肉」了，要改数量就点它', 409));
   renderWithApp(<Stock />, { view: view(), act });
-  fireEvent.click(screen.getByRole('button', { name: '＋ 加食材' }));
+  fireEvent.click(screen.getByRole('button', { name: '加食材' }));
   fireEvent.input(screen.getByLabelText('食材名'), { target: { value: '五花肉 ' } });
   fireEvent.click(screen.getByRole('button', { name: '保存' }));
   expect(await screen.findByText(/已经有「五花肉」了/)).toBeTruthy();

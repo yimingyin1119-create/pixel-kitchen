@@ -9,13 +9,10 @@ import { Sheet } from '../ui/Sheet.jsx';
 import { Toast } from '../ui/Toast.jsx';
 import { RecipeSheet } from '../ui/RecipeSheet.jsx';
 import { RequestSheet } from '../ui/RequestSheet.jsx';
-
-const ICONS = ['pot', 'bowl', 'tomato', 'egg', 'fish', 'leaf'];
-export function dishIcon(name) {
-  let h = 0;
-  for (const ch of name) h = (h * 31 + ch.codePointAt(0)) >>> 0;
-  return ICONS[h % ICONS.length];
-}
+import { dishIcon } from '../lib/dishIcon.js';
+import { cookLine, doneRequests } from '../lib/meals.js';
+import { MEALS } from '../copy.js';
+import { dateLabel } from '../lib/time.js';
 
 function amount(ing, n, base) {
   if (ing.qty === null || ing.qty === undefined) return `${ing.name} ${ing.unit || '适量'}`;
@@ -28,6 +25,8 @@ function RecipeDetail({ recipe, onClose, onEdit, onWant, onDeleted }) {
   const [confirming, setConfirming] = useState(false);
   const [run, pending, error] = useAction();
   const author = recipe.createdBy ? view.users.find((u) => u.uid === recipe.createdBy)?.name ?? '' : '预设';
+  const missing = view.availability[recipe.uid]?.missing ?? [];
+  const recent = doneRequests(view.requests).filter((r) => r.items.some((i) => i.recipeUid === recipe.uid)).slice(0, 3);
 
   const remove = () => run(async () => {
     const data = await act('recipes.archive', { uid: recipe.uid }, {
@@ -46,9 +45,26 @@ function RecipeDetail({ recipe, onClose, onEdit, onWant, onDeleted }) {
       </div>
       <div class="section-title">食材</div>
       {recipe.ingredients.length === 0 && <p class="muted">还没写食材</p>}
-      <ul class="plain-list">{recipe.ingredients.map((ing, i) => <li key={i}>{amount(ing, n, recipe.baseServings)}</li>)}</ul>
+      <ul class="plain-list">
+        {recipe.ingredients.map((ing, i) => (
+          <li key={i} data-testid={`ing-${ing.name}`} class="ing-row">
+            <span>{amount(ing, n, recipe.baseServings)}</span>
+            {missing.includes(ing.name) && <span class="tag miss">缺</span>}
+          </li>
+        ))}
+      </ul>
       <div class="section-title">步骤</div>
       <ol class="plain-list">{recipe.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
+      {recent.length > 0 && <>
+        <div class="section-title"><Sprite name="scroll" scale={2} />最近做过</div>
+        <ul class="plain-list">
+          {recent.map((r) => (
+            <li key={r.uid} class="ing-row" data-testid="recent-cook">
+              <span>{dateLabel(r.wantedDate)} {MEALS[r.meal]}</span><span class="muted">{cookLine(r, view.users, true)}</span>
+            </li>
+          ))}
+        </ul>
+      </>}
       {confirming ? (
         <PixelBox class="page">
           <p>确定删除「{recipe.name}」？做过的记录会保留。</p>
@@ -86,17 +102,17 @@ export function Recipes() {
 
   return (
     <div>
-      <Header title="菜谱" subtitle={`${live.length} 道菜`} />
+      <Header title="菜谱" subtitle={`${live.length} 道菜`} icon="book" />
       <Toast text={toast} onDone={() => setToast('')} />
       <div class="page">
-        <Button class="big-btn" onClick={() => setSheet({ type: 'new' })}>＋ 新菜谱</Button>
+        <Button class="big-btn icon-btn" onClick={() => setSheet({ type: 'new' })}><Sprite name="book" scale={2} tint="#fff6e6" />新菜谱</Button>
         <input class="px-input" placeholder="搜菜名" value={search} onInput={(e) => setSearch(e.currentTarget.value)} />
         {list.map((r) => {
           const missing = view.availability[r.uid]?.missing ?? [];
           return (
             <PixelBox key={r.uid} class={`dish ${highlight === r.uid ? 'flash' : ''}`}>
               <div class="row">
-                <Sprite name={dishIcon(r.name)} />
+                <Sprite name={dishIcon(r)} />
                 <div style={{ flex: 1 }}>
                   <button type="button" class="name-btn" data-testid="recipe-name" onClick={() => setSheet({ type: 'detail', recipe: r })}>{r.name}</button>
                   <div class="muted">做过 {count(r)} 次 · {r.baseServings} 人份</div>
@@ -107,7 +123,7 @@ export function Recipes() {
             </PixelBox>
           );
         })}
-        {list.length === 0 && <p class="muted center">没有找到这道菜</p>}
+        {list.length === 0 && <div class="center" style={{ padding: '20px 0' }}><Sprite name="pot" scale={4} /><p class="muted">没有找到这道菜</p></div>}
       </div>
       {sheet?.type === 'new' && <RecipeSheet onClose={() => setSheet(null)} onSaved={done} />}
       {sheet?.type === 'edit' && <RecipeSheet recipe={sheet.recipe} onClose={() => setSheet(null)} onSaved={done} />}

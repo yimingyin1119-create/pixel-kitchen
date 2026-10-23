@@ -140,3 +140,14 @@ a.tag { text-decoration: none; }
 .plain-list li { margin: 3px 0; }
 .bar { height: 6px; background: var(--miss-bg); margin-top: 4px; }
 .bar i { display: block; height: 6px; }
+.title-bar { display: flex; align-items: center; gap: 10px; }
+.tabbar { height: 60px; }
+.tabbar button { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12px; padding: 6px 4px; }
+.tabbar button[aria-selected='true'] .sprite { filter: drop-shadow(0 0 0 var(--gold)); transform: translateY(-1px); }
+.section-title { display: flex; align-items: center; gap: 6px; }
+.icon-btn { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.ing-row { display: flex; justify-content: space-between; gap: 8px; }
+.day-title { margin: 14px 4px 2px; font-size: 13px; color: var(--wood-dark); border-bottom: 2px solid var(--miss-bg); padding-bottom: 2px; }
+
+/* iOS and WeChat zoom the page when a focused field's text is under 16px; keep every field at 16px. */
+input, select, textarea, .px-input { font-size: 16px; }

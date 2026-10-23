@@ -68,7 +68,7 @@ test('manual item can be deleted', () => {
 
 test('add a manual item', async () => {
   const { act } = renderWithApp(<Shopping />, { view: view() });
-  fireEvent.click(screen.getByRole('button', { name: '＋ 手动加' }));
+  fireEvent.click(screen.getByRole('button', { name: '手动加' }));
   fireEvent.input(screen.getByLabelText('买什么'), { target: { value: '香菜' } });
   fireEvent.input(screen.getByLabelText('数量'), { target: { value: '1' } });
   fireEvent.input(screen.getByLabelText('单位'), { target: { value: '把' } });

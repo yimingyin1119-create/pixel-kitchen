@@ -23,7 +23,7 @@ test('most cooked dish comes first', () => {
 
 test('new recipe saves and highlights', async () => {
   const { act } = renderWithApp(<Recipes />, { view: view() });
-  fireEvent.click(screen.getByRole('button', { name: '＋ 新菜谱' }));
+  fireEvent.click(screen.getByRole('button', { name: '新菜谱' }));
   fireEvent.input(screen.getByLabelText('菜名'), { target: { value: '番茄炒蛋' } });
   fireEvent.input(screen.getByLabelText('食材（一行一样）'), { target: { value: '番茄 2 个\n盐 适量' } });
   fireEvent.input(screen.getByLabelText('步骤（一行一步）'), { target: { value: '切\n炒' } });
@@ -41,7 +41,7 @@ test('new recipe saves and highlights', async () => {
 test('duplicate name switches to editing the existing dish', async () => {
   const act = vi.fn().mockRejectedValue(new ApiError('CONFLICT', '已经有「红烧肉」了', 409));
   renderWithApp(<Recipes />, { view: view(), act });
-  fireEvent.click(screen.getByRole('button', { name: '＋ 新菜谱' }));
+  fireEvent.click(screen.getByRole('button', { name: '新菜谱' }));
   fireEvent.input(screen.getByLabelText('菜名'), { target: { value: ' 红烧肉 ' } });
   fireEvent.click(screen.getByRole('button', { name: '保存' }));
   expect(await screen.findByText(/已经有「红烧肉」了/)).toBeTruthy();
@@ -85,4 +85,25 @@ test('renaming a dish to a taken name keeps the edits', async () => {
   expect(await screen.findByText(/已经有「葱油拌面」了/)).toBeTruthy();
   expect(screen.getByLabelText('菜名').value).toBe('葱油拌面');
   expect(screen.getByLabelText('食材（一行一样）').value).toBe('五花肉 500 g\n盐 适量');
+});
+
+test('dish cards use the icon for their kind of dish', () => {
+  const fish = { uid: 'r9', name: '清蒸鲈鱼', baseServings: 2, archived: false, ingredients: [], steps: [] };
+  const { container } = renderWithApp(<Recipes />, { view: view({ recipes: [fish, pork] }) });
+  const icons = [...container.querySelectorAll('.dish [data-icon]')].map((n) => n.dataset.icon);
+  expect(icons).toEqual(['meat', 'fish']);
+});
+
+test('detail marks missing ingredients and lists who cooked it lately', () => {
+  const requests = [
+    { uid: 'o1', status: 'done', wantedDate: '2026-10-20', meal: 'dinner', updatedIso: '2026-10-20T11:00:00.000Z', userUid: 'd1', takerUid: 'c1', items: [{ recipeUid: 'r1', name: '红烧肉' }] },
+    { uid: 'o2', status: 'done', wantedDate: '2026-10-12', meal: 'lunch', updatedIso: '2026-10-12T04:00:00.000Z', userUid: 'd1', takerUid: 'd1', items: [{ recipeUid: 'r1', name: '红烧肉' }] },
+    { uid: 'o3', status: 'done', wantedDate: '2026-10-11', meal: 'lunch', updatedIso: '2026-10-11T04:00:00.000Z', userUid: 'd1', takerUid: 'c1', items: [{ recipeUid: 'r2', name: '葱油拌面' }] },
+  ];
+  renderWithApp(<Recipes />, { view: view({ requests, availability: { r1: { makeable: false, missing: ['五花肉'] } } }) });
+  fireEvent.click(screen.getByRole('button', { name: '红烧肉' }));
+  expect(screen.getByTestId('ing-五花肉').textContent).toContain('缺');
+  expect(screen.getByTestId('ing-盐').textContent).not.toContain('缺');
+  const recent = screen.getAllByTestId('recent-cook').map((n) => n.textContent);
+  expect(recent).toEqual(['10月20日 晚饭大厨做 · 小明提', '10月12日 午饭小明自己做']);
 });

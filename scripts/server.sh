@@ -90,7 +90,7 @@ case "${1:-}" in
     echo "将要在 $PK_HOST 上："
     echo "  1. 备份数据库到 $REMOTE_DIR/backups/pre-reset-<时间>.sqlite"
     echo "  2. 删除全部 7 张数据表（账号、菜谱、要求、食材、采购……）"
-    echo "  3. 重新建表，并写入 12 道预设菜谱"
+    echo "  3. 重新建表，并写入 30 道预设菜谱"
     printf '确定的话输入 RESET：'
     read -r answer
     [ "$answer" = "RESET" ] || { echo "没有输入 RESET，什么都没做。"; exit 1; }

@@ -8,8 +8,8 @@ import { sameName } from './names.js';
 const SESSION_DAYS = 30;
 const MAX_FAILS = 5;
 const LOCK_MINUTES = 15;
-// Two people for now (spec: 先做两个人的); raise it here and redeploy to let more join.
-export const MAX_MEMBERS = 2;
+// Four people for now; raise it here and redeploy to let more join.
+export const MAX_MEMBERS = 4;
 
 export function hashPin(pin, salt) {
   return sha256Hex(`${salt}:${pin}`);

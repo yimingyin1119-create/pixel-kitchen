@@ -21,12 +21,13 @@ test('register rejects duplicate name', () => {
   assert.equal(call(a.state, 'auth.register', { name: ' 小明 ', pin: '1111' }).status, 409);
 });
 
-test('register is capped at two members for now', () => {
+test('register is capped at four members', () => {
   let state = emptyState();
-  for (let i = 1; i <= 2; i++) state = register(state, `人${i}`).state;
-  const r = call(state, 'auth.register', { name: '人3', pin: '1111' });
+  for (let i = 1; i <= 4; i++) state = register(state, `人${i}`).state;
+  assert.equal(state.users.length, 4);
+  const r = call(state, 'auth.register', { name: '人5', pin: '1111' });
   assert.equal(r.status, 403);
-  assert.match(r.body.error.message, /2/);
+  assert.match(r.body.error.message, /4/);
 });
 
 test('old setup and member creation are gone', () => {

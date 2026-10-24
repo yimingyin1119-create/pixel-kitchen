@@ -25,5 +25,5 @@ export default function admin({ core, cfg }) {
     ...tables.flatMap((t) => [['业务处理', `挑出 ${t} 的改动`], [`挑出 ${t} 的改动`, `写入 ${t}`]]),
     ['业务处理', '回复'],
   );
-  return workflow({ id: ADMIN_ID, name: '搭伙小灶 · 管理接口', nodes, connections, cfg, secret: true });
+  return workflow({ id: ADMIN_ID, name: '饭搭子 · 管理接口', nodes, connections, cfg, secret: true });
 }

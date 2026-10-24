@@ -12,7 +12,7 @@ test('every tab shows a pixel icon above its label', () => {
 });
 
 test('the header can carry an icon', () => {
-  const { container } = render(<Header title="搭伙小灶" subtitle="今天" icon="hat" />);
+  const { container } = render(<Header title="饭搭子" subtitle="今天" icon="hat" />);
   expect(container.querySelector('header [data-icon="hat"] svg')).toBeTruthy();
 });
 

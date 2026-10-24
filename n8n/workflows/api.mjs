@@ -81,5 +81,5 @@ export default function api({ core, cfg }) {
     ['试发一条', '看推送结果'],
     ['看推送结果', '回复：推送结果'],
   );
-  return workflow({ id: API_ID, name: '搭伙小灶 · 点餐接口', nodes, connections, cfg, secret: true });
+  return workflow({ id: API_ID, name: '饭搭子 · 点餐接口', nodes, connections, cfg, secret: true });
 }

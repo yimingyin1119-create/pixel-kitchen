@@ -30,5 +30,5 @@ export default function seed({ core, cfg, seedRecipes }) {
     ['挑出菜谱', '写入 pk_recipes'],
     ['准备预设', '写好了'],
   );
-  return workflow({ id: SEED_ID, name: '搭伙小灶 · 写入预设菜谱', nodes, connections, cfg });
+  return workflow({ id: SEED_ID, name: '饭搭子 · 写入预设菜谱', nodes, connections, cfg });
 }

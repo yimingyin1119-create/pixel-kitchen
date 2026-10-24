@@ -51,7 +51,7 @@ test('register mode calls auth.register', async () => {
   const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(json({ ok: true, data: { token: 'newtok123', view: view('小红') } }));
   render(<App />);
   fireEvent.click(screen.getByRole('button', { name: '第一次来？注册' }));
-  expect(screen.getByText('加入搭伙小灶')).toBeTruthy();
+  expect(screen.getByText('加入饭搭子')).toBeTruthy();
   fireEvent.input(screen.getByPlaceholderText('你的名字'), { target: { value: '小红' } });
   for (const d of '2468') fireEvent.click(screen.getByRole('button', { name: d }));
   await waitFor(() => expect(screen.getAllByRole('tab').length).toBe(5));
@@ -109,7 +109,7 @@ test('optimistic change reverts on error', async () => {
 
 test('brand name everywhere', () => {
   render(<App />);
-  expect(screen.getAllByText('搭伙小灶').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('饭搭子').length).toBeGreaterThan(0);
   expect(screen.getByText('一起开小灶')).toBeTruthy();
   expect(document.body.textContent).not.toContain('乡村小厨');
 });

@@ -22,7 +22,7 @@ export const MESSAGES = [
   ['request.cancelled', '被取消', `={{ $json.who }} 取消了 {{ ${DISHES} }}`, '=不用做啦'],
   ['request.done', '出锅了', `={{ ${DISHES} }} 出锅啦`, '={{ $json.taker }} 做的，快来吃！'],
   ['stock.low', '快用完了', '={{ $json.name }} 快用完了', '=已经加进采购清单'],
-  ['push.test', '测试推送', '=搭伙小灶', '=推送设置成功 ✦'],
+  ['push.test', '测试推送', '=饭搭子', '=推送设置成功 ✦'],
 ];
 
 export default function notify({ core, cfg }) {
@@ -39,5 +39,5 @@ export default function notify({ core, cfg }) {
     ...MESSAGES.map(([, label], i) => ['事件类型', `拼消息：${label}`, i]),
     ...MESSAGES.map(([, label]) => [`拼消息：${label}`, '发到微信']),
   );
-  return workflow({ id: NOTIFY_ID, name: '搭伙小灶 · 通知中心', nodes, connections, cfg });
+  return workflow({ id: NOTIFY_ID, name: '饭搭子 · 通知中心', nodes, connections, cfg });
 }

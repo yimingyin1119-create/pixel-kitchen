@@ -29,5 +29,5 @@ export default function auth({ core, cfg }) {
     ['读取 pk_sessions', '读取 pk_users'],
     ['读取 pk_users', '核对会话'],
   );
-  return workflow({ id: AUTH_ID, name: '搭伙小灶 · 登录校验', nodes, connections, cfg, secret: true });
+  return workflow({ id: AUTH_ID, name: '饭搭子 · 登录校验', nodes, connections, cfg, secret: true });
 }
